@@ -276,7 +276,7 @@ export default function CreateExamForm({ programs, onSuccess, onError }: CreateE
             type="submit"
             disabled={loading}
             className="px-6 py-2 text-sm font-medium text-white rounded-lg transition-colors disabled:opacity-50"
-            style={{ background: '#0F6E56' }}
+            style={{ background: '#1A2D5A' }}
           >
             {loading ? 'Creating...' : 'Create Exam'}
           </button>
@@ -297,7 +297,7 @@ export default function CreateExamForm({ programs, onSuccess, onError }: CreateE
               });
             }}
             className="px-6 py-2 text-sm font-medium rounded-lg transition-colors"
-            style={{ color: '#6b6b67', border: '1px solid #c8c7c0' }}
+            style={{ color: '#666666', border: '1px solid #E5E5E5' }}
           >
             Reset
           </button>

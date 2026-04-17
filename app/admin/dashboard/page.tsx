@@ -183,7 +183,7 @@ export default function AdminDashboard() {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-purple-600 mx-auto"></div>
+          <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-red-600 mx-auto"></div>
           <p className="mt-3 text-sm text-gray-600">Loading...</p>
         </div>
       </div>
@@ -197,7 +197,7 @@ export default function AdminDashboard() {
           <p className="text-red-600 text-sm">{error}</p>
           <button
             onClick={fetchStudents}
-            className="mt-4 px-4 py-2 bg-purple-600 text-white text-sm rounded-lg hover:bg-purple-700 transition-colors"
+            className="mt-4 px-4 py-2 bg-red-600 text-white text-sm rounded-lg hover:bg-red-700 transition-colors"
           >
             Retry
           </button>
@@ -207,66 +207,59 @@ export default function AdminDashboard() {
   }
 
   return (
-    <div className="h-screen grid overflow-hidden" style={{ gridTemplateColumns: '220px 1fr', background: '#f4f4f0' }}>
+    <div className="h-screen grid overflow-hidden" style={{ gridTemplateColumns: '180px 1fr', background: '#F5F5F5' }}>
       {/* Sidebar */}
-      <div className="bg-white flex flex-col h-screen overflow-hidden" style={{ borderRight: '1px solid #e0dfd8' }}>
+      <div className="bg-white flex flex-col h-screen overflow-hidden" style={{ borderRight: '1px solid #E5E5E5' }}>
         {/* Profile Header */}
-        <div className="p-4 flex-shrink-0" style={{ borderBottom: '1px solid #e0dfd8' }}>
-          <div className="w-10 h-10 rounded-full flex items-center justify-center text-sm font-medium mb-2" style={{ background: '#FFDDD8', color: '#B91C1C' }}>
+        <div className="p-2.5 flex-shrink-0" style={{ borderBottom: '1px solid #E5E5E5' }}>
+          <div className="w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium mb-2" style={{ background: '#E8F0FE', color: '#1A2D5A' }}>
             {session?.user?.name?.charAt(0).toUpperCase()}
           </div>
-          <div className="text-sm font-medium mb-2" style={{ color: '#1a1a18' }}>{session?.user?.name}</div>
-          <div className="text-xs px-2 py-1 rounded-full inline-block" style={{ background: '#FFDDD8', color: '#B91C1C' }}>
+          <div className="text-xs font-medium mb-1" style={{ color: '#1A2D5A' }}>{session?.user?.name}</div>
+          <div className="text-xs px-2 py-0.5 rounded-full inline-block" style={{ background: '#E8F0FE', color: '#1A2D5A' }}>
             ✓ Admin
           </div>
         </div>
 
         {/* Navigation */}
-        <nav className="p-2 flex flex-col gap-1 flex-1 overflow-auto">
+        <nav className="p-1.5 flex flex-col gap-0.5 flex-1 overflow-auto">
           <a 
             href="#" 
             onClick={(e) => { e.preventDefault(); setActiveTab('pending'); }}
-            className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium" 
-            style={activeTab === 'pending' ? { background: '#EEEDFE', color: '#3C3489' } : { color: '#6b6b67' }}
+            className="flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-xs" 
+            style={activeTab === 'pending' ? { background: '#E8F0FE', color: '#1A2D5A', fontWeight: 500 } : { color: '#666666' }}
           >
-            <svg className="w-4 h-4" viewBox="0 0 16 16" fill="none">
+            <svg className="w-3 h-3" viewBox="0 0 16 16" fill="none">
               <rect x="1" y="1" width="6" height="6" rx="1.5" fill="currentColor"/>
               <rect x="9" y="1" width="6" height="6" rx="1.5" fill="currentColor" opacity="0.3"/>
               <rect x="1" y="9" width="6" height="6" rx="1.5" fill="currentColor" opacity="0.3"/>
               <rect x="9" y="9" width="6" height="6" rx="1.5" fill="currentColor" opacity="0.3"/>
             </svg>
-            Pending Approvals
+            Pending
           </a>
           <a 
             href="#" 
             onClick={(e) => { e.preventDefault(); setActiveTab('approved'); }}
-            className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm" 
-            style={activeTab === 'approved' ? { background: '#EEEDFE', color: '#3C3489', fontWeight: 500 } : { color: '#6b6b67' }}
+            className="flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-xs" 
+            style={activeTab === 'approved' ? { background: '#E8F0FE', color: '#1A2D5A', fontWeight: 500 } : { color: '#666666' }}
           >
-            <svg className="w-4 h-4" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.2">
+            <svg className="w-3 h-3" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.2">
               <path d="M5 8l2 2 4-4" strokeLinecap="round" strokeLinejoin="round"/>
               <circle cx="8" cy="8" r="6"/>
             </svg>
-            Approved Students
+            Approved
           </a>
           <a 
             href="#" 
             onClick={(e) => { e.preventDefault(); setActiveTab('teachers'); }}
-            className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm" 
-            style={activeTab === 'teachers' ? { background: '#EEEDFE', color: '#3C3489', fontWeight: 500 } : { color: '#6b6b67' }}
+            className="flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-xs" 
+            style={activeTab === 'teachers' ? { background: '#E8F0FE', color: '#1A2D5A', fontWeight: 500 } : { color: '#666666' }}
           >
-            <svg className="w-4 h-4" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.2">
+            <svg className="w-3 h-3" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.2">
               <circle cx="8" cy="5" r="3"/>
               <path d="M2 14c0-3.314 2.686-5 6-5s6 1.686 6 5" strokeLinecap="round"/>
             </svg>
             Teachers
-          </a>
-          <a href="#" className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm hover:bg-gray-50 transition-colors" style={{ color: '#6b6b67' }}>
-            <svg className="w-4 h-4" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.2">
-              <circle cx="8" cy="8" r="3"/>
-              <path d="M8 2v2M8 12v2M2 8h2M12 8h2" strokeLinecap="round"/>
-            </svg>
-            Settings
           </a>
         </nav>
       </div>
@@ -274,34 +267,34 @@ export default function AdminDashboard() {
       {/* Main Content */}
       <div className="flex flex-col h-screen overflow-hidden">
         {/* Header */}
-        <div className="bg-white px-6 py-3 flex items-center justify-between flex-shrink-0" style={{ borderBottom: '1px solid #e0dfd8' }}>
-          <h1 className="text-lg font-medium" style={{ color: '#1a1a18' }}>
+        <div className="bg-white px-4 py-2 flex items-center justify-between flex-shrink-0" style={{ borderBottom: '1px solid #E5E5E5' }}>
+          <h1 className="text-sm font-semibold" style={{ color: '#1A2D5A' }}>
             {activeTab === 'pending' && 'Pending Approvals'}
             {activeTab === 'approved' && 'Approved Students'}
-            {activeTab === 'teachers' && 'Teachers Management'}
+            {activeTab === 'teachers' && 'Teachers'}
           </h1>
           <button
             onClick={() => router.push('/api/auth/signout')}
-            className="text-sm px-4 py-2 rounded-lg hover:bg-gray-50 transition-colors" 
-            style={{ color: '#6b6b67', border: '1px solid #c8c7c0' }}
+            className="text-xs px-3 py-1.5 rounded-lg hover:bg-gray-50 transition-colors" 
+            style={{ color: '#666666', border: '1px solid #E5E5E5' }}
           >
             Sign out
           </button>
         </div>
 
         {/* Content */}
-        <div className="flex-1 overflow-auto p-6 space-y-4">
+        <div className="flex-1 overflow-auto p-3 space-y-2">
           {activeTab === 'pending' && (
             <>
               {/* Stats Card */}
-              <div className="bg-white rounded-xl p-5" style={{ border: '1px solid #e0dfd8' }}>
-                <div className="text-xs font-medium uppercase tracking-wider mb-2" style={{ color: '#9b9b96' }}>Applications Pending Review</div>
-                <div className="text-3xl font-semibold" style={{ color: '#1a1a18' }}>{students.length}</div>
+              <div className="bg-white rounded-lg p-2.5" style={{ border: '1px solid #E5E5E5' }}>
+                <div className="text-xs font-medium mb-1" style={{ color: '#666666' }}>PENDING REVIEW</div>
+                <div className="text-xl font-bold" style={{ color: '#1A2D5A' }}>{students.length}</div>
               </div>
 
               {/* Students Table */}
               <div>
-                <div className="text-xs font-medium uppercase tracking-wider mb-3" style={{ color: '#9b9b96' }}>Student Applications</div>
+                <div className="text-xs font-medium mb-2" style={{ color: '#666666' }}>APPLICATIONS</div>
                 <StudentApprovalTable
                   students={students}
                   onApprove={handleApprove}
@@ -314,14 +307,14 @@ export default function AdminDashboard() {
           {activeTab === 'approved' && (
             <>
               {/* Stats Card */}
-              <div className="bg-white rounded-xl p-5" style={{ border: '1px solid #e0dfd8' }}>
-                <div className="text-xs font-medium uppercase tracking-wider mb-2" style={{ color: '#9b9b96' }}>Total Approved Students</div>
-                <div className="text-3xl font-semibold" style={{ color: '#1a1a18' }}>{approvedStudents.length}</div>
+              <div className="bg-white rounded-lg p-2.5" style={{ border: '1px solid #E5E5E5' }}>
+                <div className="text-xs font-medium mb-1" style={{ color: '#666666' }}>TOTAL APPROVED</div>
+                <div className="text-xl font-bold" style={{ color: '#1A2D5A' }}>{approvedStudents.length}</div>
               </div>
 
               {/* Approved Students Table */}
               <div>
-                <div className="text-xs font-medium uppercase tracking-wider mb-3" style={{ color: '#9b9b96' }}>All Approved Students</div>
+                <div className="text-xs font-medium mb-2" style={{ color: '#666666' }}>APPROVED STUDENTS</div>
                 <ApprovedStudentsTable students={approvedStudents} />
               </div>
             </>
@@ -330,14 +323,14 @@ export default function AdminDashboard() {
           {activeTab === 'teachers' && (
             <>
               {/* Stats Card */}
-              <div className="bg-white rounded-xl p-5" style={{ border: '1px solid #e0dfd8' }}>
-                <div className="text-xs font-medium uppercase tracking-wider mb-2" style={{ color: '#9b9b96' }}>Total Teachers</div>
-                <div className="text-3xl font-semibold" style={{ color: '#1a1a18' }}>{teachers.length}</div>
+              <div className="bg-white rounded-lg p-2.5" style={{ border: '1px solid #E5E5E5' }}>
+                <div className="text-xs font-medium mb-1" style={{ color: '#666666' }}>TOTAL TEACHERS</div>
+                <div className="text-xl font-bold" style={{ color: '#1A2D5A' }}>{teachers.length}</div>
               </div>
 
               {/* Teachers Table */}
               <div>
-                <div className="text-xs font-medium uppercase tracking-wider mb-3" style={{ color: '#9b9b96' }}>All Teachers</div>
+                <div className="text-xs font-medium mb-2" style={{ color: '#666666' }}>ALL TEACHERS</div>
                 <TeacherListTable teachers={teachers} />
               </div>
             </>
@@ -349,7 +342,7 @@ export default function AdminDashboard() {
       {toast && (
         <div className="fixed top-4 right-4 z-50">
           <div
-            className={`px-4 py-3 rounded-lg shadow-lg text-sm ${
+            className={`px-3 py-2 rounded-lg shadow-lg text-xs ${
               toast.type === 'success'
                 ? 'bg-green-600 text-white'
                 : 'bg-red-600 text-white'

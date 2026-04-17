@@ -23,53 +23,53 @@ export default function SchoolProgramList({ selectedSchools }: SchoolProgramList
 
   if (selectedSchools.length === 0) {
     return (
-      <div className="text-center py-8 bg-white rounded-xl" style={{ border: '1px solid #e0dfd8' }}>
-        <p className="text-sm" style={{ color: '#6b6b67' }}>No schools selected</p>
+      <div className="text-center py-4 bg-white rounded-lg" style={{ border: '1px solid #E5E5E5' }}>
+        <p className="text-xs" style={{ color: '#666666' }}>No schools selected</p>
       </div>
     );
   }
 
   const badgeColors = [
-    { bg: '#CECBF6', text: '#3C3489' },
-    { bg: '#E1F5EE', text: '#085041' }
+    { bg: '#E8F0FE', text: '#1A2D5A' },
+    { bg: '#D1FAE5', text: '#065F46' }
   ];
   
   const pillColors = [
-    { bg: '#EEEDFE', text: '#533490' },
-    { bg: '#E1F5EE', text: '#085041' }
+    { bg: '#E8F0FE', text: '#1A2D5A' },
+    { bg: '#D1FAE5', text: '#065F46' }
   ];
 
   return (
-    <div className="space-y-3">
+    <div className="space-y-2">
       {schoolNames.map((schoolName, index) => (
-        <div key={schoolName} className="bg-white rounded-xl" style={{ border: '1px solid #e0dfd8', padding: '1rem 1.25rem' }}>
+        <div key={schoolName} className="bg-white rounded-lg" style={{ border: '1px solid #E5E5E5', padding: '0.625rem 0.875rem' }}>
           {/* School Header */}
-          <div className="flex items-center gap-3 mb-3">
+          <div className="flex items-center gap-2 mb-2">
             <span 
-              className="w-7 h-7 flex items-center justify-center rounded-full text-xs font-medium flex-shrink-0"
+              className="w-6 h-6 flex items-center justify-center rounded-full text-xs font-medium flex-shrink-0"
               style={{ background: badgeColors[index % 2].bg, color: badgeColors[index % 2].text }}
             >
               {index + 1}
             </span>
-            <h3 className="text-sm font-medium" style={{ color: '#1a1a18' }}>{schoolName}</h3>
+            <h3 className="text-xs font-medium" style={{ color: '#1A2D5A' }}>{schoolName}</h3>
           </div>
 
           {/* Programs Row */}
-          <div className="flex items-center justify-between gap-3 pt-3" style={{ borderTop: '1px solid #e0dfd8' }}>
-            <div className="flex gap-2">
+          <div className="flex items-center justify-between gap-2 pt-2" style={{ borderTop: '1px solid #E5E5E5' }}>
+            <div className="flex gap-1.5 flex-wrap">
               {groupedBySchool[schoolName].map((program, idx) => (
                 <span 
                   key={idx} 
-                  className="text-xs px-3 py-1 rounded-full font-medium"
+                  className="text-xs px-2 py-0.5 rounded-full font-medium"
                   style={{ background: pillColors[index % 2].bg, color: pillColors[index % 2].text }}
                 >
                   {program}
                 </span>
               ))}
             </div>
-            <div className="flex items-center gap-2 text-xs px-3 py-1 rounded-lg" style={{ background: '#FAEEDA', color: '#854F0B' }}>
-              <span className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ background: '#BA7517' }}></span>
-              Exam schedule coming soon
+            <div className="flex items-center gap-1.5 text-xs px-2 py-0.5 rounded-lg flex-shrink-0" style={{ background: '#FEF3C7', color: '#92400E' }}>
+              <span className="w-1 h-1 rounded-full flex-shrink-0" style={{ background: '#D97706' }}></span>
+              <span className="whitespace-nowrap">Coming soon</span>
             </div>
           </div>
         </div>

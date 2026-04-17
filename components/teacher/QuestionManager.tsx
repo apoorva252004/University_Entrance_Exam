@@ -168,7 +168,7 @@ export default function QuestionManager({ examId, onSuccess, onError }: Question
         <button
           onClick={() => setShowForm(true)}
           className="w-full px-4 py-3 rounded-xl text-sm font-medium transition-colors hover:opacity-90"
-          style={{ background: '#EEEDFE', color: '#533490' }}
+          style={{ background: '#E8F0FE', color: '#1A2D5A' }}
         >
           + Add New Question
         </button>
@@ -176,15 +176,15 @@ export default function QuestionManager({ examId, onSuccess, onError }: Question
 
       {/* Question Form */}
       {showForm && (
-        <div className="bg-white rounded-xl p-6" style={{ border: '1px solid #e0dfd8' }}>
+        <div className="bg-white rounded-xl p-6" style={{ border: '1px solid #E5E5E5' }}>
           <div className="flex items-center justify-between mb-4">
-            <h3 className="text-sm font-medium" style={{ color: '#1a1a18' }}>
+            <h3 className="text-sm font-medium" style={{ color: '#222222' }}>
               {editingQuestion ? 'Edit Question' : 'Add New Question'}
             </h3>
             <button
               onClick={resetForm}
               className="text-xs px-3 py-1.5 rounded-lg hover:bg-gray-50 transition-colors"
-              style={{ color: '#6b6b67', border: '1px solid #c8c7c0' }}
+              style={{ color: '#666666', border: '1px solid #E5E5E5' }}
             >
               Cancel
             </button>
@@ -193,7 +193,7 @@ export default function QuestionManager({ examId, onSuccess, onError }: Question
           <form onSubmit={handleSubmit} className="space-y-4">
             {/* Question Text */}
             <div>
-              <label className="block text-xs font-medium mb-2" style={{ color: '#6b6b67' }}>
+              <label className="block text-xs font-medium mb-2" style={{ color: '#666666' }}>
                 Question Text *
               </label>
               <textarea
@@ -202,7 +202,7 @@ export default function QuestionManager({ examId, onSuccess, onError }: Question
                 required
                 rows={3}
                 className="w-full px-3 py-2 text-sm rounded-lg focus:outline-none focus:ring-2"
-                style={{ border: '1px solid #e0dfd8', background: '#ffffff', color: '#1a1a18', focusRing: '#533490' }}
+                style={{ border: '1px solid #E5E5E5', background: '#ffffff', color: '#222222', focusRing: '#B81C2E' }}
                 placeholder="Enter your question here..."
               />
             </div>
@@ -210,7 +210,7 @@ export default function QuestionManager({ examId, onSuccess, onError }: Question
             {/* Question Type and Marks */}
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="block text-xs font-medium mb-2" style={{ color: '#6b6b67' }}>
+                <label className="block text-xs font-medium mb-2" style={{ color: '#666666' }}>
                   Question Type *
                 </label>
                 <select
@@ -218,7 +218,7 @@ export default function QuestionManager({ examId, onSuccess, onError }: Question
                   onChange={(e) => setFormData({ ...formData, questionType: e.target.value as Question['questionType'], options: ['', '', '', ''], correctAnswer: '' })}
                   required
                   className="w-full px-3 py-2 text-sm rounded-lg focus:outline-none focus:ring-2"
-                  style={{ border: '1px solid #e0dfd8', background: '#ffffff', color: '#1a1a18' }}
+                  style={{ border: '1px solid #E5E5E5', background: '#ffffff', color: '#222222' }}
                 >
                   <option value="MCQ">Multiple Choice</option>
                   <option value="TRUE_FALSE">True/False</option>
@@ -228,7 +228,7 @@ export default function QuestionManager({ examId, onSuccess, onError }: Question
               </div>
 
               <div>
-                <label className="block text-xs font-medium mb-2" style={{ color: '#6b6b67' }}>
+                <label className="block text-xs font-medium mb-2" style={{ color: '#666666' }}>
                   Marks *
                 </label>
                 <input
@@ -238,7 +238,7 @@ export default function QuestionManager({ examId, onSuccess, onError }: Question
                   required
                   min="1"
                   className="w-full px-3 py-2 text-sm rounded-lg focus:outline-none focus:ring-2"
-                  style={{ border: '1px solid #e0dfd8', background: '#ffffff', color: '#1a1a18' }}
+                  style={{ border: '1px solid #E5E5E5', background: '#ffffff', color: '#222222' }}
                 />
               </div>
             </div>
@@ -246,7 +246,7 @@ export default function QuestionManager({ examId, onSuccess, onError }: Question
             {/* MCQ Options */}
             {formData.questionType === 'MCQ' && (
               <div>
-                <label className="block text-xs font-medium mb-2" style={{ color: '#6b6b67' }}>
+                <label className="block text-xs font-medium mb-2" style={{ color: '#666666' }}>
                   Options *
                 </label>
                 <div className="space-y-2">
@@ -258,7 +258,7 @@ export default function QuestionManager({ examId, onSuccess, onError }: Question
                         checked={formData.correctAnswer === option}
                         onChange={() => setFormData({ ...formData, correctAnswer: option })}
                         className="w-4 h-4"
-                        style={{ accentColor: '#533490' }}
+                        style={{ accentColor: '#B81C2E' }}
                       />
                       <input
                         type="text"
@@ -267,19 +267,19 @@ export default function QuestionManager({ examId, onSuccess, onError }: Question
                         required
                         placeholder={`Option ${index + 1}`}
                         className="flex-1 px-3 py-2 text-sm rounded-lg focus:outline-none focus:ring-2"
-                        style={{ border: '1px solid #e0dfd8', background: '#ffffff', color: '#1a1a18' }}
+                        style={{ border: '1px solid #E5E5E5', background: '#ffffff', color: '#222222' }}
                       />
                     </div>
                   ))}
                 </div>
-                <p className="text-xs mt-2" style={{ color: '#9b9b96' }}>Select the correct answer by clicking the radio button</p>
+                <p className="text-xs mt-2" style={{ color: '#999999' }}>Select the correct answer by clicking the radio button</p>
               </div>
             )}
 
             {/* True/False Options */}
             {formData.questionType === 'TRUE_FALSE' && (
               <div>
-                <label className="block text-xs font-medium mb-2" style={{ color: '#6b6b67' }}>
+                <label className="block text-xs font-medium mb-2" style={{ color: '#666666' }}>
                   Correct Answer *
                 </label>
                 <div className="flex gap-4">
@@ -292,9 +292,9 @@ export default function QuestionManager({ examId, onSuccess, onError }: Question
                       onChange={(e) => setFormData({ ...formData, correctAnswer: e.target.value })}
                       required
                       className="w-4 h-4"
-                      style={{ accentColor: '#533490' }}
+                      style={{ accentColor: '#B81C2E' }}
                     />
-                    <span className="text-sm" style={{ color: '#1a1a18' }}>True</span>
+                    <span className="text-sm" style={{ color: '#222222' }}>True</span>
                   </label>
                   <label className="flex items-center gap-2">
                     <input
@@ -305,9 +305,9 @@ export default function QuestionManager({ examId, onSuccess, onError }: Question
                       onChange={(e) => setFormData({ ...formData, correctAnswer: e.target.value })}
                       required
                       className="w-4 h-4"
-                      style={{ accentColor: '#533490' }}
+                      style={{ accentColor: '#B81C2E' }}
                     />
-                    <span className="text-sm" style={{ color: '#1a1a18' }}>False</span>
+                    <span className="text-sm" style={{ color: '#222222' }}>False</span>
                   </label>
                 </div>
               </div>
@@ -317,7 +317,7 @@ export default function QuestionManager({ examId, onSuccess, onError }: Question
             <button
               type="submit"
               className="w-full px-4 py-2.5 rounded-lg text-sm font-medium transition-colors hover:opacity-90"
-              style={{ background: '#533490', color: '#ffffff' }}
+              style={{ background: '#1A2D5A', color: '#ffffff' }}
             >
               {editingQuestion ? 'Update Question' : 'Add Question'}
             </button>
@@ -327,24 +327,24 @@ export default function QuestionManager({ examId, onSuccess, onError }: Question
 
       {/* Questions List */}
       {questions.length === 0 && !showForm ? (
-        <div className="text-center py-12 bg-white rounded-xl" style={{ border: '1px solid #e0dfd8' }}>
-          <p className="text-sm" style={{ color: '#6b6b67' }}>No questions added yet</p>
+        <div className="text-center py-12 bg-white rounded-xl" style={{ border: '1px solid #E5E5E5' }}>
+          <p className="text-sm" style={{ color: '#666666' }}>No questions added yet</p>
         </div>
       ) : (
         <div className="space-y-3">
           {questions.map((question, index) => (
-            <div key={question.id} className="bg-white rounded-xl p-5" style={{ border: '1px solid #e0dfd8' }}>
+            <div key={question.id} className="bg-white rounded-xl p-5" style={{ border: '1px solid #E5E5E5' }}>
               <div className="flex items-start justify-between gap-4">
                 <div className="flex-1">
                   <div className="flex items-start gap-3 mb-3">
-                    <span className="text-xs font-medium px-2 py-1 rounded-full flex-shrink-0" style={{ background: '#f4f4f0', color: '#6b6b67' }}>
+                    <span className="text-xs font-medium px-2 py-1 rounded-full flex-shrink-0" style={{ background: '#F3F4F6', color: '#666666' }}>
                       Q{index + 1}
                     </span>
-                    <p className="text-sm flex-1" style={{ color: '#1a1a18' }}>{question.questionText}</p>
+                    <p className="text-sm flex-1" style={{ color: '#222222' }}>{question.questionText}</p>
                   </div>
 
-                  <div className="flex flex-wrap gap-3 text-xs" style={{ color: '#6b6b67' }}>
-                    <span className="px-2 py-1 rounded-full" style={{ background: '#EEEDFE', color: '#533490' }}>
+                  <div className="flex flex-wrap gap-3 text-xs" style={{ color: '#666666' }}>
+                    <span className="px-2 py-1 rounded-full" style={{ background: '#E8F0FE', color: '#1A2D5A' }}>
                       {question.questionType.replace('_', ' ')}
                     </span>
                     <span>{question.marks} {question.marks === 1 ? 'mark' : 'marks'}</span>
@@ -353,8 +353,8 @@ export default function QuestionManager({ examId, onSuccess, onError }: Question
                   {question.options && (
                     <div className="mt-3 space-y-1">
                       {JSON.parse(question.options).map((option: string, idx: number) => (
-                        <div key={idx} className="text-xs flex items-center gap-2" style={{ color: '#6b6b67' }}>
-                          <span className={option === question.correctAnswer ? 'font-medium' : ''} style={option === question.correctAnswer ? { color: '#085041' } : {}}>
+                        <div key={idx} className="text-xs flex items-center gap-2" style={{ color: '#666666' }}>
+                          <span className={option === question.correctAnswer ? 'font-medium' : ''} style={option === question.correctAnswer ? { color: '#065F46' } : {}}>
                             {String.fromCharCode(65 + idx)}. {option}
                             {option === question.correctAnswer && ' ✓'}
                           </span>
@@ -364,7 +364,7 @@ export default function QuestionManager({ examId, onSuccess, onError }: Question
                   )}
 
                   {question.questionType === 'TRUE_FALSE' && (
-                    <div className="mt-2 text-xs" style={{ color: '#085041' }}>
+                    <div className="mt-2 text-xs" style={{ color: '#065F46' }}>
                       Correct Answer: {question.correctAnswer}
                     </div>
                   )}
@@ -374,14 +374,14 @@ export default function QuestionManager({ examId, onSuccess, onError }: Question
                   <button
                     onClick={() => handleEdit(question)}
                     className="px-3 py-1.5 rounded-lg text-xs font-medium transition-colors hover:opacity-90"
-                    style={{ background: '#EEEDFE', color: '#533490' }}
+                    style={{ background: '#E8F0FE', color: '#1A2D5A' }}
                   >
                     Edit
                   </button>
                   <button
                     onClick={() => handleDelete(question.id)}
                     className="px-3 py-1.5 rounded-lg text-xs font-medium transition-colors hover:opacity-90"
-                    style={{ background: '#FFDDD8', color: '#B91C1C' }}
+                    style={{ background: '#E8F0FE', color: '#1A2D5A' }}
                   >
                     Delete
                   </button>

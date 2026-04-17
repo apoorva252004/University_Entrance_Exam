@@ -34,8 +34,10 @@ export default function SignupForm() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [expandedSchool, setExpandedSchool] = useState<string | null>(null);
+  const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
+    setMounted(true);
     fetchSchools();
   }, []);
 
@@ -123,9 +125,16 @@ export default function SignupForm() {
   };
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-4">
+    <form onSubmit={handleSubmit} className="space-y-3">
+      {!mounted && (
+        <div style={{ padding: '1rem', textAlign: 'center', color: '#666666', fontSize: '0.875rem' }}>
+          Loading form...
+        </div>
+      )}
+      {mounted && (
+        <>
       <div>
-        <label htmlFor="name" className="block text-sm font-medium mb-2" style={{ color: '#1A1A2E' }}>
+        <label htmlFor="name" className="block text-xs font-medium mb-1" style={{ color: '#222222' }}>
           Full Name
         </label>
         <input
@@ -136,13 +145,13 @@ export default function SignupForm() {
           required
           placeholder="John Doe"
           disabled={loading}
-          className="w-full px-4 py-2.5 rounded-lg text-sm focus:outline-none focus:ring-2 disabled:opacity-50 transition-all"
-          style={{ border: '1px solid #E2E5ED', color: '#1A1A2E', background: '#FFFFFF' }}
+          className="w-full px-3 py-2 rounded-lg text-sm focus:outline-none focus:ring-2 disabled:opacity-50 transition-all"
+          style={{ border: '1px solid #E5E5E5', color: '#222222', background: '#FFFFFF' }}
         />
       </div>
 
       <div>
-        <label htmlFor="email" className="block text-sm font-medium mb-2" style={{ color: '#1A1A2E' }}>
+        <label htmlFor="email" className="block text-xs font-medium mb-1" style={{ color: '#222222' }}>
           Email Address
         </label>
         <input
@@ -151,16 +160,16 @@ export default function SignupForm() {
           value={email}
           onChange={(e) => setEmail(e.target.value)}
           required
-          placeholder="your.email@example.com"
+          placeholder="your.email@gmail.com"
           disabled={loading}
-          className="w-full px-4 py-2.5 rounded-lg text-sm focus:outline-none focus:ring-2 disabled:opacity-50 transition-all"
-          style={{ border: '1px solid #E2E5ED', color: '#1A1A2E', background: '#FFFFFF' }}
+          className="w-full px-3 py-2 rounded-lg text-sm focus:outline-none focus:ring-2 disabled:opacity-50 transition-all"
+          style={{ border: '1px solid #E5E5E5', color: '#222222', background: '#FFFFFF' }}
         />
       </div>
 
       <div>
-        <label htmlFor="phone" className="block text-sm font-medium mb-2" style={{ color: '#1A1A2E' }}>
-          Phone Number <span style={{ color: '#9DA5B4' }}>(Optional)</span>
+        <label htmlFor="phone" className="block text-xs font-medium mb-1" style={{ color: '#222222' }}>
+          Phone <span style={{ color: '#666666' }}>(Optional)</span>
         </label>
         <input
           id="phone"
@@ -169,13 +178,13 @@ export default function SignupForm() {
           onChange={(e) => setPhone(e.target.value)}
           placeholder="1234567890"
           disabled={loading}
-          className="w-full px-4 py-2.5 rounded-lg text-sm focus:outline-none focus:ring-2 disabled:opacity-50 transition-all"
-          style={{ border: '1px solid #E2E5ED', color: '#1A1A2E', background: '#FFFFFF' }}
+          className="w-full px-3 py-2 rounded-lg text-sm focus:outline-none focus:ring-2 disabled:opacity-50 transition-all"
+          style={{ border: '1px solid #E5E5E5', color: '#222222', background: '#FFFFFF' }}
         />
       </div>
 
       <div>
-        <label htmlFor="password" className="block text-sm font-medium mb-2" style={{ color: '#1A1A2E' }}>
+        <label htmlFor="password" className="block text-xs font-medium mb-1" style={{ color: '#222222' }}>
           Password
         </label>
         <input
@@ -184,16 +193,16 @@ export default function SignupForm() {
           value={password}
           onChange={(e) => setPassword(e.target.value)}
           required
-          placeholder="Minimum 8 characters"
+          placeholder="Min 8 characters"
           minLength={8}
           disabled={loading}
-          className="w-full px-4 py-2.5 rounded-lg text-sm focus:outline-none focus:ring-2 disabled:opacity-50 transition-all"
-          style={{ border: '1px solid #E2E5ED', color: '#1A1A2E', background: '#FFFFFF' }}
+          className="w-full px-3 py-2 rounded-lg text-sm focus:outline-none focus:ring-2 disabled:opacity-50 transition-all"
+          style={{ border: '1px solid #E5E5E5', color: '#222222', background: '#FFFFFF' }}
         />
       </div>
 
       <div>
-        <label htmlFor="confirmPassword" className="block text-sm font-medium mb-2" style={{ color: '#1A1A2E' }}>
+        <label htmlFor="confirmPassword" className="block text-xs font-medium mb-1" style={{ color: '#222222' }}>
           Confirm Password
         </label>
         <input
@@ -204,72 +213,105 @@ export default function SignupForm() {
           required
           placeholder="Re-enter password"
           disabled={loading}
-          className="w-full px-4 py-2.5 rounded-lg text-sm focus:outline-none focus:ring-2 disabled:opacity-50 transition-all"
-          style={{ border: '1px solid #E2E5ED', color: '#1A1A2E', background: '#FFFFFF' }}
+          className="w-full px-3 py-2 rounded-lg text-sm focus:outline-none focus:ring-2 disabled:opacity-50 transition-all"
+          style={{ border: '1px solid #E5E5E5', color: '#222222', background: '#FFFFFF' }}
         />
       </div>
 
       <div>
-        <label className="block text-sm font-medium mb-2" style={{ color: '#1A1A2E' }}>
-          Select Programs <span style={{ color: '#9DA5B4' }}>(Optional)</span>
+        <label className="block text-xs font-medium mb-1" style={{ color: '#222222' }}>
+          Schools & Programs <span style={{ color: '#666666' }}>(Optional)</span>
         </label>
-        <div className="space-y-2 max-h-64 overflow-y-auto rounded-lg p-3" style={{ border: '1px solid #E2E5ED', background: '#FFFFFF' }}>
-          {schools.map((school) => (
-            <div key={school.id} className="rounded-lg overflow-hidden" style={{ border: '1px solid #E2E5ED' }}>
-              <button
-                type="button"
-                onClick={() => setExpandedSchool(expandedSchool === school.id ? null : school.id)}
-                className="w-full flex items-center justify-between px-4 py-3 text-left transition-colors"
-                style={{ background: '#F5F6FA' }}
-              >
-                <span className="font-medium text-sm" style={{ color: '#1B2B5E' }}>{school.name}</span>
-                <svg
-                  className={`w-5 h-5 transition-transform ${expandedSchool === school.id ? "rotate-180" : ""}`}
-                  style={{ color: '#C8922A' }}
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                </svg>
-              </button>
-
-              {expandedSchool === school.id && (
-                <div className="p-2 space-y-1">
-                  {school.programs.map((program) => {
-                    const isSelected = selectedPrograms.some(
-                      (sp) => sp.schoolId === school.id && sp.programId === program.id
-                    );
-                    return (
-                      <label
-                        key={program.id}
-                        className="flex items-center p-2 rounded-lg cursor-pointer transition-colors hover:bg-gray-50"
-                      >
-                        <input
-                          type="checkbox"
-                          checked={isSelected}
-                          onChange={() => toggleProgram(school, program)}
-                          className="h-4 w-4 rounded"
-                          style={{ accentColor: '#C8922A' }}
-                        />
-                        <span className="ml-3 text-sm" style={{ color: '#5A6270' }}>{program.name}</span>
-                      </label>
-                    );
-                  })}
+        <div className="space-y-1" style={{ border: '1px solid #E5E5E5', background: '#FFFFFF', borderRadius: '0.5rem', padding: '0.5rem', maxHeight: '150px', overflowY: 'auto' }}>
+          {!mounted ? (
+            <div style={{ padding: '0.5rem', color: '#666666', fontSize: '0.75rem' }}>Loading schools...</div>
+          ) : schools.length === 0 ? (
+            <div style={{ padding: '0.5rem', color: '#666666', fontSize: '0.75rem' }}>No schools available</div>
+          ) : (
+            schools.map((school) => {
+              const schoolPrograms = selectedPrograms.filter(sp => sp.schoolId === school.id);
+              const allProgramsSelected = school.programs.length > 0 && school.programs.length === schoolPrograms.length;
+              const someProgramsSelected = schoolPrograms.length > 0 && schoolPrograms.length < school.programs.length;
+              
+              return (
+                <div key={school.id}>
+                  <label
+                    className="flex items-center p-1 rounded-lg cursor-pointer transition-colors hover:bg-gray-50"
+                  >
+                    <input
+                      type="checkbox"
+                      checked={allProgramsSelected}
+                      onChange={() => {
+                        if (allProgramsSelected) {
+                          setSelectedPrograms(prev => prev.filter(sp => sp.schoolId !== school.id));
+                        } else {
+                          const newPrograms = school.programs.map(program => ({
+                            schoolId: school.id,
+                            schoolName: school.name,
+                            programId: program.id,
+                            programName: program.name,
+                          }));
+                          setSelectedPrograms(prev => [...prev.filter(sp => sp.schoolId !== school.id), ...newPrograms]);
+                        }
+                      }}
+                      disabled={loading}
+                      className="h-3 w-3 rounded"
+                      style={{ accentColor: '#E5A020' }}
+                      ref={(el) => {
+                        if (el && mounted) {
+                          el.indeterminate = someProgramsSelected;
+                        }
+                      }}
+                    />
+                    <span className="ml-2 text-xs font-medium" style={{ color: '#666666' }}>{school.name}</span>
+                  </label>
+                  
+                  <div className="ml-5 space-y-0.5 mt-0.5">
+                    {school.programs.map((program) => {
+                      const isSelected = selectedPrograms.some(sp => sp.schoolId === school.id && sp.programId === program.id);
+                      return (
+                        <label
+                          key={program.id}
+                          className="flex items-center p-0.5 rounded-lg cursor-pointer transition-colors hover:bg-gray-50"
+                        >
+                          <input
+                            type="checkbox"
+                            checked={isSelected}
+                            onChange={() => {
+                              if (isSelected) {
+                                setSelectedPrograms(prev => prev.filter(sp => !(sp.schoolId === school.id && sp.programId === program.id)));
+                              } else {
+                                setSelectedPrograms(prev => [...prev, {
+                                  schoolId: school.id,
+                                  schoolName: school.name,
+                                  programId: program.id,
+                                  programName: program.name,
+                                }]);
+                              }
+                            }}
+                            disabled={loading}
+                            className="h-3 w-3 rounded"
+                            style={{ accentColor: '#E5A020' }}
+                          />
+                          <span className="ml-2 text-xs" style={{ color: '#666666' }}>{program.name}</span>
+                        </label>
+                      );
+                    })}
+                  </div>
                 </div>
-              )}
-            </div>
-          ))}
+              );
+            })
+          )}
         </div>
         {selectedPrograms.length > 0 && (
-          <p className="mt-2 text-xs font-medium" style={{ color: '#C8922A' }}>
-            {selectedPrograms.length} program(s) selected
+          <p className="mt-1 text-xs" style={{ color: '#E5A020' }}>
+            {new Set(selectedPrograms.map(sp => sp.schoolId)).size} school(s), {selectedPrograms.length} program(s) selected
           </p>
         )}
       </div>
 
       {error && (
-        <div className="text-sm rounded-lg p-3" style={{ 
+        <div className="text-xs rounded-lg p-2" style={{ 
           background: '#FEE2E2', 
           border: '1px solid #FCA5A5',
           color: '#991B1B'
@@ -281,14 +323,18 @@ export default function SignupForm() {
       <button
         type="submit"
         disabled={loading}
-        className="w-full py-3 px-4 text-white font-medium rounded-lg focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+        className="w-full py-2.5 px-4 font-medium rounded-lg focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
         style={{
-          background: '#1B2B5E',
-          boxShadow: '0 1px 2px rgba(27, 43, 94, 0.1)'
+          background: '#1A2D5A',
+          color: '#FFFFFF',
+          fontSize: '0.875rem',
+          boxShadow: '0 1px 2px rgba(26, 45, 90, 0.1)'
         }}
       >
         {loading ? "Creating account..." : "Create account"}
       </button>
+        </>
+      )}
     </form>
   );
 }
