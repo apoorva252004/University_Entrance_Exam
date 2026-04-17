@@ -1,5 +1,8 @@
-import { Role, ApplicationStatus } from "@prisma/client";
 import { Session } from "next-auth";
+
+// Define role and status types based on the database schema
+type Role = "ADMIN" | "TEACHER" | "STUDENT";
+type ApplicationStatus = "PENDING" | "APPROVED" | "REJECTED";
 
 /**
  * Check if the user has an admin role

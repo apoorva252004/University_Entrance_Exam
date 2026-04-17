@@ -79,7 +79,18 @@ export async function GET(request: NextRequest) {
     // Filter students who selected the teacher's school and extract the program (Requirements 4.3, 4.4)
     const students: TeacherStudent[] = allStudents
       .map((student) => {
-        const selectedSchools = (student.selectedSchools as SelectedSchool[]) || [];
+        let selectedSchools: SelectedSchool[] = [];
+        
+        if (student.selectedSchools) {
+          try {
+            selectedSchools = typeof student.selectedSchools === 'string' 
+              ? JSON.parse(student.selectedSchools) 
+              : student.selectedSchools;
+          } catch (e) {
+            console.error('Error parsing selectedSchools:', e);
+            selectedSchools = [];
+          }
+        }
         
         // Find the school entry that matches teacher's assigned school
         const schoolEntry = selectedSchools.find(

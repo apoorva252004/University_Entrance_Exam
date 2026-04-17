@@ -64,14 +64,28 @@ export async function GET(request: NextRequest) {
     });
 
     // Transform response to match expected format (Requirement 3.3)
-    const students: StudentResponse[] = pendingStudents.map((student) => ({
-      id: student.id,
-      name: student.name,
-      email: student.email,
-      phone: student.phone,
-      selectedSchools: (student.selectedSchools as SelectedSchool[]) || [],
-      createdAt: student.createdAt,
-    }));
+    const students: StudentResponse[] = pendingStudents.map((student) => {
+      let parsedSchools: SelectedSchool[] = [];
+      
+      if (student.selectedSchools) {
+        try {
+          // Parse the JSON string from SQLite
+          parsedSchools = JSON.parse(student.selectedSchools);
+        } catch (e) {
+          console.error('Error parsing selectedSchools:', e);
+          parsedSchools = [];
+        }
+      }
+      
+      return {
+        id: student.id,
+        name: student.name,
+        email: student.email,
+        phone: student.phone,
+        selectedSchools: parsedSchools,
+        createdAt: student.createdAt,
+      };
+    });
 
     return NextResponse.json(
       { students },

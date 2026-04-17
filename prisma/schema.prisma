@@ -23,6 +23,10 @@ model User {
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
 
+  // Relations
+  createdExams    Exam[]        @relation("ExamCreator")
+  examAttempts    ExamAttempt[]
+
   @@index([role, status])
 }
 
@@ -30,6 +34,7 @@ model School {
   id        String    @id @default(cuid())
   name      String    @unique
   programs  Program[]
+  exams     Exam[]
   createdAt DateTime  @default(now())
 }
 
@@ -38,7 +43,92 @@ model Program {
   name      String
   schoolId  String
   school    School   @relation(fields: [schoolId], references: [id])
+  exams     Exam[]
   createdAt DateTime @default(now())
 
   @@unique([schoolId, name])
+}
+
+model Exam {
+  id          String    @id @default(cuid())
+  title       String
+  description String?
+  examDate    DateTime
+  duration    Int       // Duration in minutes
+  totalMarks  Int
+  schoolId    String
+  programId   String
+  createdById String
+  status      String    @default("SCHEDULED") // SCHEDULED, ONGOING, COMPLETED, CANCELLED
+  mode        String    @default("OFFLINE")   // ONLINE, OFFLINE
+  venue       String?
+  instructions String?
+  
+  school      School    @relation(fields: [schoolId], references: [id])
+  program     Program   @relation(fields: [programId], references: [id])
+  createdBy   User      @relation("ExamCreator", fields: [createdById], references: [id])
+  questions   Question[]
+  attempts    ExamAttempt[]
+  
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@index([schoolId, programId, examDate])
+  @@index([status])
+}
+
+model Question {
+  id              String   @id @default(cuid())
+  examId          String
+  questionText    String
+  questionType    String   // MCQ, SHORT_ANSWER, LONG_ANSWER, TRUE_FALSE
+  options         String?  // JSON array for MCQ options
+  correctAnswer   String?  // For MCQ and TRUE_FALSE
+  marks           Int
+  order           Int      // Question order in exam
+  
+  exam            Exam     @relation(fields: [examId], references: [id], onDelete: Cascade)
+  answers         Answer[]
+  
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@index([examId])
+}
+
+model ExamAttempt {
+  id          String    @id @default(cuid())
+  examId      String
+  studentId   String
+  startedAt   DateTime  @default(now())
+  submittedAt DateTime?
+  score       Int?
+  totalMarks  Int
+  
+  exam        Exam      @relation(fields: [examId], references: [id], onDelete: Cascade)
+  student     User      @relation(fields: [studentId], references: [id])
+  answers     Answer[]
+  
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@unique([examId, studentId])
+  @@index([studentId])
+}
+
+model Answer {
+  id            String      @id @default(cuid())
+  attemptId     String
+  questionId    String
+  answerText    String
+  isCorrect     Boolean?
+  marksAwarded  Int?
+  
+  attempt       ExamAttempt @relation(fields: [attemptId], references: [id], onDelete: Cascade)
+  question      Question    @relation(fields: [questionId], references: [id])
+  
+  createdAt     DateTime    @default(now())
+
+  @@unique([attemptId, questionId])
+  @@index([attemptId])
 }

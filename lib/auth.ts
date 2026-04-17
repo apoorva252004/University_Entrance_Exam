@@ -64,7 +64,8 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           email: user.email,
           role: user.role,
           status: user.status,
-        };
+          selectedSchools: user.selectedSchools || null,
+        } as any;
       },
     }),
   ],
@@ -75,6 +76,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         token.id = user.id;
         token.role = (user as User).role;
         token.status = (user as User).status;
+        token.selectedSchools = (user as User).selectedSchools;
       }
       return token;
     },
@@ -84,6 +86,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         session.user.id = token.id as string;
         session.user.role = token.role as string;
         session.user.status = token.status as string;
+        session.user.selectedSchools = token.selectedSchools as string;
       }
       return session;
     },

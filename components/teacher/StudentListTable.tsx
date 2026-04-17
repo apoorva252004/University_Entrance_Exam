@@ -43,17 +43,18 @@ export default function StudentListTable({ students, assignedSchool }: StudentLi
   }, [students, sortField, sortDirection]);
 
   const getStatusBadge = (status: string) => {
-    const statusColors: Record<string, string> = {
-      APPROVED: 'bg-green-100 text-green-800',
-      PENDING: 'bg-yellow-100 text-yellow-800',
-      REJECTED: 'bg-red-100 text-red-800',
+    const statusStyles: Record<string, { bg: string; color: string }> = {
+      APPROVED: { bg: '#E1F5EE', color: '#0F6E56' },
+      PENDING: { bg: '#FAEEDA', color: '#854F0B' },
+      REJECTED: { bg: '#FFDDD8', color: '#B91C1C' },
     };
+
+    const style = statusStyles[status] || { bg: '#f4f4f0', color: '#6b6b67' };
 
     return (
       <span
-        className={`px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${
-          statusColors[status] || 'bg-gray-100 text-gray-800'
-        }`}
+        className="px-2 py-1 inline-flex text-xs font-medium rounded-full"
+        style={{ background: style.bg, color: style.color }}
       >
         {status}
       </span>
@@ -69,92 +70,71 @@ export default function StudentListTable({ students, assignedSchool }: StudentLi
 
   if (students.length === 0) {
     return (
-      <div className="text-center py-16 bg-white rounded-2xl shadow-lg border border-gray-100">
-        <div className="w-20 h-20 bg-gradient-to-br from-gray-100 to-gray-200 rounded-full flex items-center justify-center mx-auto mb-4">
-          <svg className="w-10 h-10 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
-          </svg>
-        </div>
-        <p className="text-gray-900 text-xl font-semibold">No Students Yet</p>
-        <p className="text-gray-500 mt-2">No students have selected {assignedSchool}</p>
+      <div className="text-center py-12 bg-white rounded-xl" style={{ border: '1px solid #e0dfd8' }}>
+        <p className="text-sm" style={{ color: '#6b6b67' }}>No students enrolled yet</p>
       </div>
     );
   }
 
   return (
-    <div className="bg-white rounded-2xl shadow-xl border border-gray-100 overflow-hidden">
-      <div className="px-8 py-6 bg-gradient-to-r from-purple-50 via-white to-purple-50 border-b border-gray-200">
-        <div className="flex items-center justify-between">
-          <div>
-            <h3 className="text-2xl font-bold text-gray-900">
-              Students for {assignedSchool}
-            </h3>
-            <p className="text-sm text-gray-600 mt-1 flex items-center">
-              <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-purple-100 text-purple-800 mr-2">
-                {students.length}
-              </span>
-              student{students.length !== 1 ? 's' : ''} enrolled
-            </p>
-          </div>
-        </div>
-      </div>
-
+    <div className="bg-white rounded-xl overflow-hidden" style={{ border: '1px solid #e0dfd8' }}>
       <div className="overflow-x-auto">
-        <table className="min-w-full divide-y divide-gray-200">
-          <thead className="bg-gray-50">
+        <table className="min-w-full">
+          <thead style={{ background: '#f4f4f0', borderBottom: '1px solid #e0dfd8' }}>
             <tr>
               <th
-                className="px-6 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider cursor-pointer hover:bg-gray-100 transition-colors"
+                className="px-5 py-3 text-left text-xs font-medium uppercase tracking-wider cursor-pointer hover:bg-gray-100 transition-colors"
                 onClick={() => handleSort('name')}
+                style={{ color: '#6b6b67' }}
               >
-                <div className="flex items-center space-x-2">
+                <div className="flex items-center gap-2">
                   <span>Student</span>
                   <SortIcon field="name" />
                 </div>
               </th>
               <th
-                className="px-6 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider cursor-pointer hover:bg-gray-100 transition-colors"
+                className="px-5 py-3 text-left text-xs font-medium uppercase tracking-wider cursor-pointer hover:bg-gray-100 transition-colors"
                 onClick={() => handleSort('email')}
+                style={{ color: '#6b6b67' }}
               >
-                <div className="flex items-center space-x-2">
+                <div className="flex items-center gap-2">
                   <span>Email</span>
                   <SortIcon field="email" />
                 </div>
               </th>
-              <th className="px-6 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">
+              <th className="px-5 py-3 text-left text-xs font-medium uppercase tracking-wider" style={{ color: '#6b6b67' }}>
                 Program
               </th>
               <th
-                className="px-6 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider cursor-pointer hover:bg-gray-100 transition-colors"
+                className="px-5 py-3 text-left text-xs font-medium uppercase tracking-wider cursor-pointer hover:bg-gray-100 transition-colors"
                 onClick={() => handleSort('status')}
+                style={{ color: '#6b6b67' }}
               >
-                <div className="flex items-center space-x-2">
+                <div className="flex items-center gap-2">
                   <span>Status</span>
                   <SortIcon field="status" />
                 </div>
               </th>
             </tr>
           </thead>
-          <tbody className="bg-white divide-y divide-gray-100">
-            {sortedStudents.map((student) => (
-              <tr key={student.id} className="hover:bg-purple-50/50 transition-colors duration-150">
-                <td className="px-6 py-5 whitespace-nowrap">
-                  <div className="flex items-center">
-                    <div className="w-10 h-10 bg-gradient-to-br from-purple-500 to-purple-600 rounded-full flex items-center justify-center text-white font-bold text-sm shadow-md">
+          <tbody className="bg-white">
+            {sortedStudents.map((student, idx) => (
+              <tr key={student.id} className="hover:bg-gray-50 transition-colors" style={{ borderBottom: idx < sortedStudents.length - 1 ? '1px solid #e0dfd8' : 'none' }}>
+                <td className="px-5 py-4 whitespace-nowrap">
+                  <div className="flex items-center gap-3">
+                    <div className="w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium" style={{ background: '#CECBF6', color: '#3C3489' }}>
                       {student.name.charAt(0).toUpperCase()}
                     </div>
-                    <div className="ml-4">
-                      <div className="text-sm font-semibold text-gray-900">{student.name}</div>
-                    </div>
+                    <div className="text-sm font-medium" style={{ color: '#1a1a18' }}>{student.name}</div>
                   </div>
                 </td>
-                <td className="px-6 py-5 whitespace-nowrap">
-                  <div className="text-sm text-gray-600">{student.email}</div>
+                <td className="px-5 py-4 whitespace-nowrap">
+                  <div className="text-sm" style={{ color: '#6b6b67' }}>{student.email}</div>
                 </td>
-                <td className="px-6 py-5 whitespace-nowrap">
-                  <div className="text-sm font-medium text-gray-900">{student.programForSchool}</div>
+                <td className="px-5 py-4 whitespace-nowrap">
+                  <div className="text-sm font-medium" style={{ color: '#1a1a18' }}>{student.programForSchool}</div>
                 </td>
-                <td className="px-6 py-5 whitespace-nowrap">
+                <td className="px-5 py-4 whitespace-nowrap">
                   {getStatusBadge(student.status)}
                 </td>
               </tr>

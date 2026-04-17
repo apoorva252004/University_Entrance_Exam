@@ -4,6 +4,10 @@ import { useEffect, useState } from 'react';
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import StudentListTable from '@/components/teacher/StudentListTable';
+import ExamListTable from '@/components/teacher/ExamListTable';
+import CreateExamForm from '@/components/teacher/CreateExamForm';
+import QuestionManager from '@/components/teacher/QuestionManager';
+import ExamResults from '@/components/teacher/ExamResults';
 
 interface Student {
   id: string;
@@ -18,12 +22,43 @@ interface TeacherStudentsResponse {
   assignedSchool: string;
 }
 
+interface Exam {
+  id: string;
+  title: string;
+  description: string | null;
+  examDate: string;
+  duration: number;
+  totalMarks: number;
+  status: string;
+  venue: string | null;
+  program: {
+    id: string;
+    name: string;
+  };
+  createdBy: {
+    name: string;
+    email: string;
+  };
+}
+
+interface Program {
+  id: string;
+  name: string;
+}
+
+type TabType = 'students' | 'exams' | 'create-exam' | 'manage-questions' | 'exam-results';
+
 export default function TeacherDashboard() {
   const { data: session, status } = useSession();
   const router = useRouter();
-  const [data, setData] = useState<TeacherStudentsResponse | null>(null);
+  const [activeTab, setActiveTab] = useState<TabType>('students');
+  const [studentsData, setStudentsData] = useState<TeacherStudentsResponse | null>(null);
+  const [exams, setExams] = useState<Exam[]>([]);
+  const [programs, setPrograms] = useState<Program[]>([]);
+  const [selectedExamId, setSelectedExamId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
 
   useEffect(() => {
     if (status === 'unauthenticated') {
@@ -35,7 +70,14 @@ export default function TeacherDashboard() {
 
   useEffect(() => {
     fetchStudents();
+    fetchExams();
+    fetchPrograms();
   }, []);
+
+  const showToast = (message: string, type: 'success' | 'error') => {
+    setToast({ message, type });
+    setTimeout(() => setToast(null), 3000);
+  };
 
   const fetchStudents = async () => {
     try {
@@ -47,7 +89,7 @@ export default function TeacherDashboard() {
       }
 
       const responseData = await response.json();
-      setData(responseData);
+      setStudentsData(responseData);
       setError(null);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'An error occurred');
@@ -56,12 +98,121 @@ export default function TeacherDashboard() {
     }
   };
 
+  const fetchExams = async () => {
+    try {
+      const response = await fetch('/api/teacher/exams');
+      
+      if (!response.ok) {
+        throw new Error('Failed to fetch exams');
+      }
+
+      const data = await response.json();
+      setExams(data.exams);
+    } catch (err) {
+      console.error('Error fetching exams:', err);
+    }
+  };
+
+  const fetchPrograms = async () => {
+    try {
+      const response = await fetch('/api/teacher/programs');
+      
+      if (!response.ok) {
+        throw new Error('Failed to fetch programs');
+      }
+
+      const data = await response.json();
+      setPrograms(data.programs);
+    } catch (err) {
+      console.error('Error fetching programs:', err);
+    }
+  };
+
+  const handleExamCreated = () => {
+    showToast('Exam created successfully!', 'success');
+    fetchExams();
+    setActiveTab('exams');
+  };
+
+  const handleManageQuestions = (examId: string) => {
+    setSelectedExamId(examId);
+    setActiveTab('manage-questions');
+  };
+
+  const handleViewResults = (examId: string) => {
+    setSelectedExamId(examId);
+    setActiveTab('exam-results');
+  };
+
+  const handlePublishExam = async (examId: string) => {
+    if (!confirm('Are you sure you want to publish this exam? Students will be able to attempt it.')) {
+      return;
+    }
+
+    try {
+      const response = await fetch(`/api/teacher/exams/${examId}/publish`, {
+        method: 'PATCH',
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to publish exam');
+      }
+
+      showToast('Exam published successfully!', 'success');
+      fetchExams();
+    } catch (err) {
+      showToast(err instanceof Error ? err.message : 'Failed to publish exam', 'error');
+    }
+  };
+
+  const handleStopExam = async (examId: string) => {
+    if (!confirm('Are you sure you want to stop this exam? Students will no longer be able to attempt it.')) {
+      return;
+    }
+
+    try {
+      const response = await fetch(`/api/teacher/exams/${examId}/stop`, {
+        method: 'PATCH',
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to stop exam');
+      }
+
+      showToast('Exam stopped successfully!', 'success');
+      fetchExams();
+    } catch (err) {
+      showToast(err instanceof Error ? err.message : 'Failed to stop exam', 'error');
+    }
+  };
+
+  const handleDeleteExam = async (examId: string) => {
+    if (!confirm('Are you sure you want to delete this exam? This action cannot be undone and will delete all questions and student attempts.')) {
+      return;
+    }
+
+    try {
+      const response = await fetch(`/api/teacher/exams/${examId}`, {
+        method: 'DELETE',
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to delete exam');
+      }
+
+      showToast('Exam deleted successfully!', 'success');
+      fetchExams();
+    } catch (err) {
+      showToast(err instanceof Error ? err.message : 'Failed to delete exam', 'error');
+    }
+  };
+
   if (status === 'loading' || loading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
-          <p className="mt-4 text-gray-600">Loading...</p>
+          <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-purple-600 mx-auto"></div>
+          <p className="mt-3 text-sm text-gray-600">Loading...</p>
         </div>
       </div>
     );
@@ -71,10 +222,10 @@ export default function TeacherDashboard() {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
-          <p className="text-red-600">{error}</p>
+          <p className="text-red-600 text-sm">{error}</p>
           <button
             onClick={fetchStudents}
-            className="mt-4 px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+            className="mt-4 px-4 py-2 bg-purple-600 text-white text-sm rounded-lg hover:bg-purple-700 transition-colors"
           >
             Retry
           </button>
@@ -83,78 +234,202 @@ export default function TeacherDashboard() {
     );
   }
 
-  if (!data) {
+  if (!studentsData) {
     return null;
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-purple-50 to-gray-50">
-      {/* Header */}
-      <div className="bg-white shadow-lg border-b border-gray-100">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          <div className="flex justify-between items-center">
-            <div>
-              <div className="flex items-center space-x-3 mb-2">
-                <div className="w-12 h-12 bg-gradient-to-br from-purple-600 to-purple-700 rounded-xl flex items-center justify-center shadow-lg">
-                  <svg className="w-7 h-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
-                  </svg>
-                </div>
-                <div>
-                  <h1 className="text-4xl font-bold bg-gradient-to-r from-gray-900 to-gray-700 bg-clip-text text-transparent">
-                    Teacher Dashboard
-                  </h1>
-                  <p className="mt-1 text-sm text-gray-600 font-medium">
-                    Welcome back, <span className="text-purple-600">{session?.user?.name}</span>
-                  </p>
-                  <p className="mt-1 text-sm font-semibold text-purple-600 flex items-center">
-                    <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
-                    </svg>
-                    {data.assignedSchool}
-                  </p>
-                </div>
-              </div>
-            </div>
-            <button
-              onClick={() => router.push('/api/auth/signout')}
-              className="px-6 py-3 text-sm font-semibold text-gray-700 bg-white border-2 border-gray-200 rounded-xl hover:bg-gray-50 hover:border-gray-300 transition-all duration-200 shadow-sm hover:shadow-md"
-            >
-              Sign Out
-            </button>
+    <div className="h-screen grid overflow-hidden" style={{ gridTemplateColumns: '220px 1fr', background: '#f4f4f0' }}>
+      {/* Sidebar */}
+      <div className="bg-white flex flex-col h-screen overflow-hidden" style={{ borderRight: '1px solid #e0dfd8' }}>
+        {/* Profile Header */}
+        <div className="p-4 flex-shrink-0" style={{ borderBottom: '1px solid #e0dfd8' }}>
+          <div className="w-10 h-10 rounded-full flex items-center justify-center text-sm font-medium mb-2" style={{ background: '#CECBF6', color: '#3C3489' }}>
+            {session?.user?.name?.charAt(0).toUpperCase()}
+          </div>
+          <div className="text-sm font-medium mb-2" style={{ color: '#1a1a18' }}>{session?.user?.name}</div>
+          <div className="text-xs px-2 py-1 rounded-full inline-block" style={{ background: '#EEEDFE', color: '#533490' }}>
+            ✓ Teacher
           </div>
         </div>
+
+        {/* Navigation */}
+        <nav className="p-2 flex flex-col gap-1 flex-1 overflow-auto">
+          <a 
+            href="#" 
+            onClick={(e) => { e.preventDefault(); setActiveTab('students'); }}
+            className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm" 
+            style={activeTab === 'students' ? { background: '#EEEDFE', color: '#3C3489', fontWeight: 500 } : { color: '#6b6b67' }}
+          >
+            <svg className="w-4 h-4" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.2">
+              <circle cx="8" cy="5" r="3"/>
+              <path d="M2 14c0-3.314 2.686-5 6-5s6 1.686 6 5" strokeLinecap="round"/>
+            </svg>
+            Students
+          </a>
+          <a 
+            href="#" 
+            onClick={(e) => { e.preventDefault(); setActiveTab('exams'); }}
+            className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm" 
+            style={activeTab === 'exams' ? { background: '#EEEDFE', color: '#3C3489', fontWeight: 500 } : { color: '#6b6b67' }}
+          >
+            <svg className="w-4 h-4" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.2">
+              <rect x="2" y="3" width="12" height="10" rx="1.5"/>
+              <path d="M5 7h6M5 10h4" strokeLinecap="round"/>
+            </svg>
+            Exams
+          </a>
+          <a 
+            href="#" 
+            onClick={(e) => { e.preventDefault(); setActiveTab('create-exam'); }}
+            className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm" 
+            style={activeTab === 'create-exam' ? { background: '#EEEDFE', color: '#3C3489', fontWeight: 500 } : { color: '#6b6b67' }}
+          >
+            <svg className="w-4 h-4" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.2">
+              <path d="M8 3v10M3 8h10" strokeLinecap="round"/>
+            </svg>
+            Create Exam
+          </a>
+          <a href="#" className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm hover:bg-gray-50 transition-colors" style={{ color: '#6b6b67' }}>
+            <svg className="w-4 h-4" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.2">
+              <circle cx="8" cy="8" r="3"/>
+              <path d="M8 2v2M8 12v2M2 8h2M12 8h2" strokeLinecap="round"/>
+            </svg>
+            Settings
+          </a>
+        </nav>
       </div>
 
       {/* Main Content */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
-        {/* Stats Card */}
-        <div className="mb-8">
-          <div className="bg-gradient-to-r from-purple-600 to-purple-700 rounded-2xl shadow-xl p-6 text-white">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center space-x-4">
-                <div className="w-16 h-16 bg-white/20 backdrop-blur-sm rounded-xl flex items-center justify-center">
-                  <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
-                  </svg>
-                </div>
-                <div>
-                  <p className="text-white/80 text-sm font-medium">Total Students</p>
-                  <p className="text-4xl font-bold mt-1">{data.students.length}</p>
-                  <p className="text-white/70 text-sm mt-1">
-                    Students who selected {data.assignedSchool}
-                  </p>
-                </div>
-              </div>
-            </div>
+      <div className="flex flex-col h-screen overflow-hidden">
+        {/* Header */}
+        <div className="bg-white px-6 py-3 flex items-center justify-between flex-shrink-0" style={{ borderBottom: '1px solid #e0dfd8' }}>
+          <div>
+            <h1 className="text-lg font-medium" style={{ color: '#1a1a18' }}>
+              {activeTab === 'students' && 'Students'}
+              {activeTab === 'exams' && 'Exams'}
+              {activeTab === 'create-exam' && 'Create New Exam'}
+              {activeTab === 'manage-questions' && 'Manage Questions'}
+              {activeTab === 'exam-results' && 'Exam Results'}
+            </h1>
+            <p className="text-xs mt-1" style={{ color: '#6b6b67' }}>{studentsData.assignedSchool}</p>
           </div>
+          <button
+            onClick={() => router.push('/api/auth/signout')}
+            className="text-sm px-4 py-2 rounded-lg hover:bg-gray-50 transition-colors" 
+            style={{ color: '#6b6b67', border: '1px solid #c8c7c0' }}
+          >
+            Sign out
+          </button>
         </div>
 
-        <StudentListTable
-          students={data.students}
-          assignedSchool={data.assignedSchool}
-        />
+        {/* Content */}
+        <div className="flex-1 overflow-auto p-6 space-y-4">
+          {activeTab === 'students' && (
+            <>
+              {/* Stats Card */}
+              <div className="bg-white rounded-xl p-5" style={{ border: '1px solid #e0dfd8' }}>
+                <div className="text-xs font-medium uppercase tracking-wider mb-2" style={{ color: '#9b9b96' }}>Total Students</div>
+                <div className="text-3xl font-semibold" style={{ color: '#1a1a18' }}>{studentsData.students.length}</div>
+              </div>
+
+              {/* Students Table */}
+              <div>
+                <div className="text-xs font-medium uppercase tracking-wider mb-3" style={{ color: '#9b9b96' }}>Enrolled Students</div>
+                <StudentListTable
+                  students={studentsData.students}
+                  assignedSchool={studentsData.assignedSchool}
+                />
+              </div>
+            </>
+          )}
+
+          {activeTab === 'exams' && (
+            <>
+              {/* Stats Card */}
+              <div className="bg-white rounded-xl p-5" style={{ border: '1px solid #e0dfd8' }}>
+                <div className="text-xs font-medium uppercase tracking-wider mb-2" style={{ color: '#9b9b96' }}>Total Exams</div>
+                <div className="text-3xl font-semibold" style={{ color: '#1a1a18' }}>{exams.length}</div>
+              </div>
+
+              {/* Exams Table */}
+              <div>
+                <div className="text-xs font-medium uppercase tracking-wider mb-3" style={{ color: '#9b9b96' }}>All Exams</div>
+                <ExamListTable 
+                  exams={exams} 
+                  onManageQuestions={handleManageQuestions} 
+                  onPublishExam={handlePublishExam} 
+                  onStopExam={handleStopExam} 
+                  onDeleteExam={handleDeleteExam}
+                  onViewResults={handleViewResults}
+                />
+              </div>
+            </>
+          )}
+
+          {activeTab === 'create-exam' && (
+            <CreateExamForm 
+              programs={programs} 
+              onSuccess={handleExamCreated}
+              onError={(message) => showToast(message, 'error')}
+            />
+          )}
+
+          {activeTab === 'manage-questions' && selectedExamId && (
+            <div>
+              <button
+                onClick={() => setActiveTab('exams')}
+                className="text-xs px-3 py-2 rounded-lg mb-4 flex items-center gap-2 hover:bg-gray-50 transition-colors"
+                style={{ color: '#6b6b67', border: '1px solid #c8c7c0' }}
+              >
+                <svg className="w-4 h-4" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.2">
+                  <path d="M10 12L6 8l4-4" strokeLinecap="round" strokeLinejoin="round"/>
+                </svg>
+                Back to Exams
+              </button>
+              <QuestionManager 
+                examId={selectedExamId}
+                onSuccess={(message) => showToast(message, 'success')}
+                onError={(message) => showToast(message, 'error')}
+              />
+            </div>
+          )}
+
+          {activeTab === 'exam-results' && selectedExamId && (
+            <div>
+              <button
+                onClick={() => setActiveTab('exams')}
+                className="text-xs px-3 py-2 rounded-lg mb-4 flex items-center gap-2 hover:bg-gray-50 transition-colors"
+                style={{ color: '#6b6b67', border: '1px solid #c8c7c0' }}
+              >
+                <svg className="w-4 h-4" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.2">
+                  <path d="M10 12L6 8l4-4" strokeLinecap="round" strokeLinejoin="round"/>
+                </svg>
+                Back to Exams
+              </button>
+              <ExamResults 
+                examId={selectedExamId}
+                onError={(message) => showToast(message, 'error')}
+              />
+            </div>
+          )}
+        </div>
       </div>
+
+      {/* Toast Notification */}
+      {toast && (
+        <div className="fixed top-4 right-4 z-50">
+          <div
+            className={`px-4 py-3 rounded-lg shadow-lg text-sm ${
+              toast.type === 'success'
+                ? 'bg-green-600 text-white'
+                : 'bg-red-600 text-white'
+            }`}
+          >
+            {toast.message}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

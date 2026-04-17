@@ -26,61 +26,78 @@ export default function LoginForm({ callbackUrl = '/' }: LoginFormProps) {
       })
 
       if (result?.error) {
-        // Handle specific error codes from NextAuth
         if (result.error === 'PENDING_APPROVAL') {
-          setError('Waiting for admin approval')
+          setError('Your account is pending admin approval.');
         } else if (result.error === 'APPLICATION_REJECTED') {
-          setError('Your application has been rejected')
+          setError('Your application has been rejected.');
         } else {
-          setError('Invalid email or password')
+          setError('Invalid email or password.');
         }
       } else if (result?.ok) {
-        // Successful login - redirect to callback URL
         window.location.href = callbackUrl
       }
     } catch (err) {
-      setError('An unexpected error occurred. Please try again.')
+      setError('An unexpected error occurred.')
     } finally {
       setIsLoading(false)
     }
   }
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-4">
+    <form onSubmit={handleSubmit} className="space-y-5">
       <div>
-        <label htmlFor="email" className="block text-sm font-medium text-gray-700">
-          Email
+        <label htmlFor="email" className="block text-sm font-medium mb-2" style={{ color: '#1A1A2E' }}>
+          Email address
         </label>
         <input
           id="email"
-          name="email"
           type="email"
           required
           value={email}
           onChange={(e) => setEmail(e.target.value)}
           disabled={isLoading}
-          className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 disabled:bg-gray-100 disabled:cursor-not-allowed"
+          className="w-full px-4 py-3 rounded-xl text-sm focus:outline-none focus:ring-2 disabled:opacity-50 transition-all"
+          style={{ 
+            border: '1px solid #E2E5ED',
+            color: '#1A1A2E',
+            background: '#FFFFFF'
+          }}
+          placeholder="you@example.com"
         />
       </div>
 
       <div>
-        <label htmlFor="password" className="block text-sm font-medium text-gray-700">
-          Password
-        </label>
+        <div className="flex items-center justify-between mb-2">
+          <label htmlFor="password" className="block text-sm font-medium" style={{ color: '#1A1A2E' }}>
+            Password
+          </label>
+          <a href="#" className="text-xs font-medium hover:underline" style={{ color: '#7C3AED' }}>
+            Forgot password?
+          </a>
+        </div>
         <input
           id="password"
-          name="password"
           type="password"
           required
           value={password}
           onChange={(e) => setPassword(e.target.value)}
           disabled={isLoading}
-          className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 disabled:bg-gray-100 disabled:cursor-not-allowed"
+          className="w-full px-4 py-3 rounded-xl text-sm focus:outline-none focus:ring-2 disabled:opacity-50 transition-all"
+          style={{ 
+            border: '1px solid #E2E5ED',
+            color: '#1A1A2E',
+            background: '#FFFFFF'
+          }}
+          placeholder="••••••••"
         />
       </div>
 
       {error && (
-        <div className="text-red-600 text-sm bg-red-50 border border-red-200 rounded-md p-3">
+        <div className="text-xs rounded-xl p-3" style={{ 
+          background: '#FEE2E2',
+          border: '1px solid #FCA5A5',
+          color: '#991B1B'
+        }}>
           {error}
         </div>
       )}
@@ -88,9 +105,12 @@ export default function LoginForm({ callbackUrl = '/' }: LoginFormProps) {
       <button
         type="submit"
         disabled={isLoading}
-        className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:bg-gray-400 disabled:cursor-not-allowed"
+        className="w-full py-3.5 px-4 text-white font-semibold text-sm rounded-xl focus:outline-none disabled:opacity-50 transition-all"
+        style={{
+          background: '#1B2B5E'
+        }}
       >
-        {isLoading ? 'Signing in...' : 'Sign In'}
+        {isLoading ? 'Signing in...' : 'Sign in'}
       </button>
     </form>
   )

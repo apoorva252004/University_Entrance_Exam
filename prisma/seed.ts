@@ -6,43 +6,94 @@ const prisma = new PrismaClient();
 async function main() {
   console.log('Starting database seed...');
 
-  // Define schools and their programs
+  // Define schools and their programs (from rvu.edu.in official website)
   const schoolsData = [
     {
-      name: 'School of Computer Science & Engineering',
-      programs: ['B.Tech CSE', 'M.Tech CSE', 'PhD CSE'],
+      name: 'School of Liberal Arts and Sciences',
+      programs: [
+        'B.A (Hons) Philosophy',
+        'B.A (Hons) Politics and International Relations',
+        'B.Sc. (Hons) Psychology',
+        'B.Sc. (Hons) Environmental Science',
+      ],
     },
     {
-      name: 'School of Electronics & Communication',
-      programs: ['B.Tech ECE', 'M.Tech ECE'],
+      name: 'School of Design and Innovation',
+      programs: [
+        'B.Des (Hons) User Experience',
+        'B.Des (Hons) Interior Environments',
+        'B.Des (Hons) Communication and New Media',
+        'B.Des (Hons) Product',
+        'B.Des (Hons) Transdisciplinary Contexts',
+      ],
     },
     {
       name: 'School of Business',
-      programs: ['BBA', 'MBA'],
+      programs: [
+        'B.B.A (Hons) Digital Marketing',
+        'B.B.A (Hons) Capital Market',
+        'B.B.A (Hons) Business Intelligence and Data Analytics',
+        'B.B.A (Hons) Finance',
+        'B.B.A (Hons) HR',
+        'B.B.A (Hons) Marketing and Analytics',
+        'B.Com (Hons) Accounting & Taxation',
+        'B.Com (Hons) Finance & Wealth Management',
+        'B.Com (Hons) Banking & Insurance',
+        'B.Com (Hons) International Accounting (ACCA)',
+      ],
     },
     {
-      name: 'School of Architecture',
-      programs: ['B.Arch', 'M.Arch'],
+      name: 'School of Economics and Public Policy',
+      programs: [
+        'B.Sc. (Hons) Economics - Data Analytics',
+        'B.Sc. (Hons) Economics - Development Studies & Public Policy',
+      ],
     },
     {
-      name: 'School of Liberal Arts',
-      programs: ['BA English', 'BA Psychology', 'MA English'],
+      name: 'School of Computer Science and Engineering',
+      programs: [
+        'B.Tech (Hons) CSE - AIML',
+        'B.Tech (Hons) CSE - Data Science & Engineering',
+        'B.Tech (Hons) CSE - Cloud Computing',
+        'B.Tech (Hons) CSE - Cyber Security',
+        'B.Sc (Hons) Data Science',
+        'B.Sc (Hons) Computer Science',
+        'BCA (Hons)',
+      ],
     },
     {
       name: 'School of Law',
-      programs: ['BA LLB', 'BBA LLB', 'LLM'],
+      programs: [
+        'B.B.A LLB (Hons)',
+        'B.A. LLB (Hons)',
+        'B.Sc. (Hons) Criminology, Cyber Law and Forensic Sciences',
+      ],
     },
     {
-      name: 'School of Design',
-      programs: ['B.Des', 'M.Des'],
+      name: 'School of Film, Media and Creative Arts',
+      programs: [
+        'B.A. Acting (Film, TV and OTT)',
+        'B.A. (Hons) Media and Journalism',
+        'B.Sc. (Hons) Animation, Visual Effects and Gaming',
+        'B.Sc. (Hons) Filmmaking',
+      ],
     },
     {
-      name: 'School of Sciences',
-      programs: ['B.Sc Physics', 'B.Sc Chemistry', 'M.Sc Physics'],
+      name: 'School for Continuing Education & Professional Studies',
+      programs: [
+        'Executive Education Programs',
+        'Postgraduate Diplomas',
+        'Certificate Programmes',
+        'Accelerated Masters Programme',
+      ],
     },
     {
-      name: 'School of Civil Engineering',
-      programs: ['B.Tech Civil', 'M.Tech Civil'],
+      name: 'School of Allied and Healthcare Professions',
+      programs: [
+        'B.Sc. (Hons) Medical Laboratory Technology',
+        'B.Sc. (Hons) Anesthesia & Operation Theatre Technology',
+        'B.Sc. (Hons) Cardiac Care Technology',
+      ],
     },
   ];
 
@@ -83,29 +134,45 @@ async function main() {
   // Create 2 teachers per school (18 total)
   console.log('Creating teachers...');
   const schools = await prisma.school.findMany();
-  let teacherCount = 0;
+  
+  // School abbreviations mapping
+  const schoolAbbreviations: Record<string, string> = {
+    'School of Liberal Arts and Sciences': 'solas',
+    'School of Design and Innovation': 'sdi',
+    'School of Business': 'sob',
+    'School of Economics and Public Policy': 'soepp',
+    'School of Computer Science and Engineering': 'socse',
+    'School of Law': 'sol',
+    'School of Film, Media and Creative Arts': 'sofmca',
+    'School for Continuing Education & Professional Studies': 'sceps',
+    'School of Allied and Healthcare Professions': 'soahp',
+  };
 
   for (const school of schools) {
+    const abbr = schoolAbbreviations[school.name] || 'teacher';
+    
     for (let i = 1; i <= 2; i++) {
-      teacherCount++;
       const hashedTeacherPassword = await bcrypt.hash('teacher123', 10);
+      const teacherEmail = `${abbr}t${i}@rvu.edu.in`;
+      const teacherName = `${abbr.toUpperCase()}T${i}`;
+      
       const teacher = await prisma.user.create({
         data: {
-          name: `Teacher ${teacherCount}`,
-          email: `teacher${teacherCount}@rvu.edu.in`,
+          name: teacherName,
+          email: teacherEmail,
           password: hashedTeacherPassword,
-          phone: `98765432${String(teacherCount).padStart(2, '0')}`,
+          phone: `9876543${String(Math.floor(Math.random() * 1000)).padStart(3, '0')}`,
           role: 'TEACHER',
           status: 'APPROVED',
           assignedSchool: school.name,
         },
       });
-      console.log(`Created teacher: ${teacher.email} assigned to ${school.name}`);
+      console.log(`Created teacher: ${teacher.email} (${teacher.name}) assigned to ${school.name}`);
     }
   }
 
   console.log('Database seed completed successfully!');
-  console.log(`Total: ${schools.length} schools, ${teacherCount} teachers, 1 admin`);
+  console.log(`Total: ${schools.length} schools, ${schools.length * 2} teachers, 1 admin`);
 }
 
 main()
