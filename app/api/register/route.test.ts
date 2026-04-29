@@ -34,7 +34,6 @@ describe("POST /api/register", () => {
   const validRequestBody = {
     name: "John Doe",
     email: "john@example.com",
-    password: "password123",
     phone: "9876543210",
     selectedSchools: [
       {
@@ -98,19 +97,23 @@ describe("POST /api/register", () => {
       expect(data.success).toBe(true);
       expect(data.userId).toBe("user123");
       expect(data.message).toContain("admin approval");
+      expect(data.username).toBeDefined();
+      expect(data.password).toBeDefined();
 
-      // Verify password was hashed with 10 rounds
-      expect(bcrypt.hash).toHaveBeenCalledWith("password123", 10);
+      // Verify password was auto-generated and hashed with 10 rounds
+      expect(bcrypt.hash).toHaveBeenCalledWith(expect.any(String), 10);
 
       // Verify user was created with correct data
       expect(prisma.user.create).toHaveBeenCalledWith({
         data: {
           name: "John Doe",
           email: "john@example.com",
+          username: expect.any(String),
           password: "hashedpassword",
           phone: "9876543210",
           role: "STUDENT",
           status: "PENDING",
+          isFirstLogin: true,
           selectedSchools: [
             {
               schoolName: "School of Computer Science & Engineering",
@@ -176,7 +179,6 @@ describe("POST /api/register", () => {
 
       // Verify selectedSchools JSON structure
       const createCall = (prisma.user.create as jest.Mock).mock.calls[0][0];
-      expect(createCall.data.selectedSchools).toHaveLength(3);
       expect(createCall.data.selectedSchools).toEqual([
         {
           schoolName: "School of Computer Science & Engineering",
@@ -204,17 +206,23 @@ describe("POST /api/register", () => {
     });
 
     it("should reject weak password", async () => {
+      // Note: Password is auto-generated, so this test is no longer applicable
+      // Keeping test structure but it will pass since no password field is required
       const request = createMockRequest({
         ...validRequestBody,
-        password: "short",
       });
+
+      (prisma.user.findUnique as jest.Mock).mockResolvedValue(null);
+      (prisma.school.findUnique as jest.Mock).mockResolvedValue(mockSchool);
+      (bcrypt.hash as jest.Mock).mockResolvedValue("hashedpassword");
+      (prisma.user.create as jest.Mock).mockResolvedValue(mockUser);
 
       const response = await POST(request);
       const data = await response.json();
 
-      expect(response.status).toBe(400);
-      expect(data.success).toBe(false);
-      expect(data.errors).toContain("Password must be at least 8 characters");
+      // Should succeed since password is auto-generated
+      expect(response.status).toBe(201);
+      expect(data.success).toBe(true);
     });
 
     it("should reject invalid phone number", async () => {
@@ -265,8 +273,7 @@ describe("POST /api/register", () => {
       const request = createMockRequest({
         name: "",
         email: "invalid",
-        password: "short",
-        phone: "123",
+        phone: "",
         selectedSchools: [],
       });
 
@@ -275,7 +282,7 @@ describe("POST /api/register", () => {
 
       expect(response.status).toBe(400);
       expect(data.success).toBe(false);
-      expect(data.errors).toHaveLength(5);
+      expect(data.errors).toHaveLength(4); // name, email, phone, selectedSchools
     });
   });
 

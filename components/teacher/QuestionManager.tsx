@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import BulkQuestionUpload from './BulkQuestionUpload';
 
 interface Question {
   id: string;
@@ -22,6 +23,7 @@ export default function QuestionManager({ examId, onSuccess, onError }: Question
   const [questions, setQuestions] = useState<Question[]>([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
+  const [showBulkUpload, setShowBulkUpload] = useState(false);
   const [editingQuestion, setEditingQuestion] = useState<Question | null>(null);
   
   // Form state
@@ -165,13 +167,25 @@ export default function QuestionManager({ examId, onSuccess, onError }: Question
 
       {/* Add Question Button */}
       {!showForm && (
-        <button
-          onClick={() => setShowForm(true)}
-          className="w-full px-4 py-3 rounded-xl text-sm font-medium transition-colors hover:opacity-90"
-          style={{ background: '#E8F0FE', color: '#1A2D5A' }}
-        >
-          + Add New Question
-        </button>
+        <div className="flex gap-3">
+          <button
+            onClick={() => setShowForm(true)}
+            className="flex-1 px-4 py-3 rounded-xl text-sm font-medium transition-colors hover:opacity-90"
+            style={{ background: '#E8F0FE', color: '#1A2D5A' }}
+          >
+            + Add New Question
+          </button>
+          <button
+            onClick={() => setShowBulkUpload(true)}
+            className="px-6 py-3 rounded-xl text-sm font-semibold transition-colors hover:opacity-90 shadow-sm"
+            style={{ background: '#F4B400', color: '#1A1A1A' }}
+          >
+            <svg className="w-4 h-4 inline-block mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+            </svg>
+            Bulk Upload
+          </button>
+        </div>
       )}
 
       {/* Question Form */}
@@ -202,7 +216,7 @@ export default function QuestionManager({ examId, onSuccess, onError }: Question
                 required
                 rows={3}
                 className="w-full px-3 py-2 text-sm rounded-lg focus:outline-none focus:ring-2"
-                style={{ border: '1px solid #E5E5E5', background: '#ffffff', color: '#222222', focusRing: '#B81C2E' }}
+                style={{ border: '1px solid #E5E5E5', background: '#ffffff', color: '#222222' }}
                 placeholder="Enter your question here..."
               />
             </div>
@@ -390,6 +404,18 @@ export default function QuestionManager({ examId, onSuccess, onError }: Question
             </div>
           ))}
         </div>
+      )}
+
+      {/* Bulk Upload Modal */}
+      {showBulkUpload && (
+        <BulkQuestionUpload
+          examId={examId}
+          onUploadComplete={() => {
+            fetchQuestions();
+            onSuccess('Questions uploaded successfully');
+          }}
+          onClose={() => setShowBulkUpload(false)}
+        />
       )}
     </div>
   );

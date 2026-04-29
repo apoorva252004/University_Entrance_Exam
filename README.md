@@ -84,8 +84,19 @@ A modern, full-stack web application for managing university entrance examinatio
 - **Password**: `admin123`
 
 ### Teacher Accounts
-- **Email**: `teacher1@rvu.edu.in` to `teacher18@rvu.edu.in`
-- **Password**: `teacher123`
+All teachers use password: `teacher123`
+
+| School | Teacher 1 Email | Teacher 2 Email |
+|--------|----------------|----------------|
+| School of Liberal Arts and Sciences | `solast1@rvu.edu.in` | `solast2@rvu.edu.in` |
+| School of Design and Innovation | `sdit1@rvu.edu.in` | `sdit2@rvu.edu.in` |
+| School of Business | `sobt1@rvu.edu.in` | `sobt2@rvu.edu.in` |
+| School of Economics and Public Policy | `soeppt1@rvu.edu.in` | `soeppt2@rvu.edu.in` |
+| School of Computer Science and Engineering | `socset1@rvu.edu.in` | `socset2@rvu.edu.in` |
+| School of Law | `solt1@rvu.edu.in` | `solt2@rvu.edu.in` |
+| School of Film, Media and Creative Arts | `sofmcat1@rvu.edu.in` | `sofmcat2@rvu.edu.in` |
+| School for Continuing Education & Professional Studies | `scepst1@rvu.edu.in` | `scepst2@rvu.edu.in` |
+| School of Allied and Healthcare Professions | `soahpt1@rvu.edu.in` | `soahpt2@rvu.edu.in` |
 
 ### Student Accounts
 Students must register through the signup page. After registration, an admin must approve their application before they can log in.

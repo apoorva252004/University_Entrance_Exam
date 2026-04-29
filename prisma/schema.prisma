@@ -14,12 +14,14 @@ model User {
   id              String   @id @default(cuid())
   name            String
   email           String   @unique
-  password        String
-  phone           String
+  username        String   @unique // Username for login (firstname + 3-digit number)
+  password        String   // bcrypt hashed password
+  phone           String?  // Optional phone number
   role            String   // ADMIN, TEACHER, STUDENT
   status          String   @default("PENDING") // PENDING, APPROVED, REJECTED
-  selectedSchools String?
-  assignedSchool  String?
+  isFirstLogin    Boolean  @default(true) // Tracks if user must change password
+  selectedSchools String?  // JSON for students: [{ schoolName, programName }]
+  assignedSchool  String?  // For teachers: single school name
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
 
@@ -27,6 +29,8 @@ model User {
   createdExams    Exam[]        @relation("ExamCreator")
   examAttempts    ExamAttempt[]
 
+  @@index([email])
+  @@index([username])
   @@index([role, status])
 }
 

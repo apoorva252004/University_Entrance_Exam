@@ -1,9 +1,25 @@
+'use client';
+
 import LoginForm from '@/components/auth/LoginForm';
 import Image from 'next/image';
+import { useSearchParams } from 'next/navigation';
+import { useEffect, useState, Suspense } from 'react';
 
-export const revalidate = 0;
+function LoginContent() {
+  const searchParams = useSearchParams();
+  const [showSuccessMessage, setShowSuccessMessage] = useState(false);
 
-export default function LoginPage() {
+  useEffect(() => {
+    if (searchParams.get('registered') === 'true') {
+      setShowSuccessMessage(true);
+      // Auto-hide after 10 seconds
+      const timer = setTimeout(() => {
+        setShowSuccessMessage(false);
+      }, 10000);
+      return () => clearTimeout(timer);
+    }
+  }, [searchParams]);
+
   return (
     <div style={{ minHeight: '100vh', display: 'flex', backgroundColor: '#FFFFFF' }}>
       {/* Left Side - Navy */}
@@ -54,6 +70,53 @@ export default function LoginPage() {
       <div style={{ width: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '3rem', backgroundColor: '#F5F5F5' }}>
         <div style={{ width: '100%', maxWidth: '26rem' }}>
           <div style={{ backgroundColor: 'white', borderRadius: '12px', padding: '2.5rem', boxShadow: '0 2px 8px rgba(0,0,0,0.08)' }}>
+            {/* Success Message */}
+            {showSuccessMessage && (
+              <div style={{ 
+                backgroundColor: '#D1FAE5', 
+                border: '2px solid #10B981', 
+                borderRadius: '8px', 
+                padding: '1rem', 
+                marginBottom: '1.5rem',
+                animation: 'slideDown 0.3s ease-out'
+              }}>
+                <div style={{ display: 'flex', alignItems: 'start', gap: '0.75rem' }}>
+                  <svg 
+                    style={{ width: '1.25rem', height: '1.25rem', color: '#065F46', flexShrink: 0, marginTop: '0.125rem' }} 
+                    fill="currentColor" 
+                    viewBox="0 0 20 20"
+                  >
+                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                  </svg>
+                  <div style={{ flex: 1 }}>
+                    <h3 style={{ fontSize: '0.875rem', fontWeight: '700', color: '#065F46', marginBottom: '0.25rem' }}>
+                      Registration Successful!
+                    </h3>
+                    <p style={{ fontSize: '0.8125rem', color: '#047857', lineHeight: '1.5' }}>
+                      Your account has been created. An admin will review and approve your application. You will receive a notification once approved. Please check back later to sign in.
+                    </p>
+                  </div>
+                  <button
+                    onClick={() => setShowSuccessMessage(false)}
+                    style={{ 
+                      background: 'none', 
+                      border: 'none', 
+                      color: '#065F46', 
+                      cursor: 'pointer',
+                      padding: '0.25rem',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center'
+                    }}
+                  >
+                    <svg style={{ width: '1rem', height: '1rem' }} fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
+                    </svg>
+                  </button>
+                </div>
+              </div>
+            )}
+
             {/* Heading */}
             <h2 style={{ fontSize: '1.75rem', fontWeight: '700', marginBottom: '0.5rem', color: '#1A2D5A', letterSpacing: '-0.5px' }}>
               Sign In
@@ -82,6 +145,27 @@ export default function LoginPage() {
           </div>
         </div>
       </div>
+
+      <style jsx>{`
+        @keyframes slideDown {
+          from {
+            opacity: 0;
+            transform: translateY(-10px);
+          }
+          to {
+            opacity: 1;
+            transform: translateY(0);
+          }
+        }
+      `}</style>
     </div>
+  );
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <LoginContent />
+    </Suspense>
   );
 }

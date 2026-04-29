@@ -77,46 +77,46 @@ export default function StudentApprovalTable({
 
   if (students.length === 0) {
     return (
-      <div className="text-center py-12 bg-white rounded-xl" style={{ border: '1px solid #e0dfd8' }}>
-        <p className="text-sm" style={{ color: '#6b6b67' }}>No pending applications</p>
+      <div className="card text-center py-12">
+        <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>No pending applications</p>
       </div>
     );
   }
 
   return (
-    <div className="space-y-3">
+    <div className="space-y-4">
       {students.map((student) => {
         const loadingState = loadingStates[student.id];
         
         return (
-          <div key={student.id} className="bg-white rounded-xl overflow-hidden" style={{ border: '1px solid #E5E5E5', padding: '1rem 1.25rem' }}>
+          <div key={student.id} className="card">
             <div className="flex items-start justify-between gap-6">
               {/* Student Info */}
               <div className="flex-1">
                 {/* Header */}
-                <div className="flex items-center gap-3 mb-3">
-                  <div className="w-9 h-9 rounded-full flex items-center justify-center text-sm font-medium" style={{ background: '#E8F0FE', color: '#1A2D5A' }}>
+                <div className="flex items-center gap-4 mb-4">
+                  <div className="w-12 h-12 rounded-full flex items-center justify-center text-lg font-semibold" style={{ background: 'var(--gold-primary)', color: 'var(--navy-primary)' }}>
                     {student.name.charAt(0).toUpperCase()}
                   </div>
                   <div>
-                    <h4 className="text-sm font-medium" style={{ color: '#1A2D5A' }}>{student.name}</h4>
-                    <p className="text-xs mt-0.5" style={{ color: '#666666' }}>{student.email}</p>
+                    <h4 className="text-base font-semibold" style={{ color: 'var(--navy-primary)' }}>{student.name}</h4>
+                    <p className="text-sm mt-1" style={{ color: 'var(--text-secondary)' }}>{student.email}</p>
                     {student.phone && (
-                      <p className="text-xs mt-0.5" style={{ color: '#666666' }}>{student.phone}</p>
+                      <p className="text-sm mt-0.5" style={{ color: 'var(--text-secondary)' }}>{student.phone}</p>
                     )}
                   </div>
                 </div>
 
                 {/* Selected Programs */}
-                <div className="pt-3" style={{ borderTop: '1px solid #E5E5E5' }}>
-                  <p className="text-xs font-medium uppercase tracking-wider mb-2" style={{ color: '#999999' }}>
+                <div className="pt-4" style={{ borderTop: '1px solid var(--gray-200)' }}>
+                  <p className="text-xs font-semibold uppercase tracking-wider mb-3" style={{ color: 'var(--text-secondary)' }}>
                     Selected Programs ({student.selectedSchools.length})
                   </p>
                   <div className="flex flex-wrap gap-2">
                     {student.selectedSchools.map((selection, idx) => (
-                      <div key={idx} className="text-xs px-3 py-1.5 rounded-lg" style={{ background: '#E8F0FE', color: '#1A2D5A' }}>
-                        <span className="font-medium">{selection.schoolName}</span>
-                        <span className="mx-1.5">·</span>
+                      <div key={idx} className="badge badge-info text-sm px-4 py-2">
+                        <span className="font-semibold">{selection.schoolName}</span>
+                        <span className="mx-2">·</span>
                         <span>{selection.programName}</span>
                       </div>
                     ))}
@@ -124,33 +124,33 @@ export default function StudentApprovalTable({
                 </div>
 
                 {/* Date */}
-                <div className="mt-2 text-xs" style={{ color: '#999999' }}>
+                <div className="mt-3 text-sm" style={{ color: 'var(--text-secondary)' }}>
                   Applied {formatDate(student.createdAt)}
                 </div>
               </div>
 
               {/* Action Buttons */}
-              <div className="flex flex-col gap-2">
-                <div
+              <div className="flex flex-col gap-3">
+                <button
                   onClick={() => {
                     console.log('=== APPROVE CLICKED ===');
                     handleApprove(student.id);
                   }}
-                  className={`px-5 py-2 text-white text-xs font-medium rounded-lg text-center cursor-pointer select-none transition-all ${loadingState !== null ? 'opacity-50 cursor-not-allowed' : 'hover:opacity-90'}`}
-                  style={{ background: '#1A2D5A' }}
+                  disabled={loadingState !== null}
+                  className="btn-primary"
                 >
                   {loadingState === 'approve' ? 'Approving...' : 'Approve'}
-                </div>
-                <div
+                </button>
+                <button
                   onClick={() => {
                     console.log('=== REJECT CLICKED ===');
                     handleReject(student.id);
                   }}
-                  className={`px-5 py-2 text-xs font-medium rounded-lg text-center cursor-pointer select-none transition-all ${loadingState !== null ? 'opacity-50 cursor-not-allowed' : 'hover:bg-gray-50'}`}
-                  style={{ color: '#666666', border: '1px solid #E5E5E5' }}
+                  disabled={loadingState !== null}
+                  className="btn-secondary"
                 >
                   {loadingState === 'reject' ? 'Rejecting...' : 'Reject'}
-                </div>
+                </button>
               </div>
             </div>
           </div>

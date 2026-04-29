@@ -32,6 +32,10 @@ interface Exam {
   _count: {
     questions: number;
   };
+  attempts: {
+    id: string;
+    submittedAt: Date | null;
+  }[];
 }
 
 type TabType = 'programs' | 'exams';
@@ -46,6 +50,12 @@ export default function StudentDashboard() {
     if (status === 'unauthenticated') {
       router.push('/login');
     } else if (status === 'authenticated') {
+      // Check if first login - redirect to change password
+      if (session?.user?.isFirstLogin) {
+        router.push('/change-password');
+        return;
+      }
+      
       if (session?.user?.role !== 'STUDENT') {
         router.push('/');
       } else if (session?.user?.status !== 'APPROVED') {
@@ -91,90 +101,131 @@ export default function StudentDashboard() {
       : session.user.selectedSchools || [];
 
   return (
-    <div className="h-screen grid overflow-hidden" style={{ gridTemplateColumns: '180px 1fr', background: '#F5F5F5' }}>
-      {/* Sidebar */}
-      <div className="bg-white flex flex-col h-screen overflow-hidden" style={{ borderRight: '1px solid #E5E5E5' }}>
+    <div className="h-screen grid overflow-hidden" style={{ gridTemplateColumns: '240px 1fr', background: 'var(--bg-main)' }}>
+      {/* Sidebar - Navy Background */}
+      <div className="sidebar flex flex-col h-screen overflow-hidden">
+        {/* Logo/Brand */}
+        <div className="p-6 flex-shrink-0" style={{ borderBottom: '1px solid rgba(255, 255, 255, 0.1)' }}>
+          <h2 className="text-lg font-bold" style={{ color: 'var(--text-on-dark)' }}>RV University</h2>
+          <p className="text-xs mt-1" style={{ color: 'rgba(255, 255, 255, 0.7)' }}>Student Portal</p>
+        </div>
+
         {/* Profile Header */}
-        <div className="p-2.5 flex-shrink-0" style={{ borderBottom: '1px solid #E5E5E5' }}>
-          <div className="w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium mb-2" style={{ background: '#E8F0FE', color: '#1A2D5A' }}>
-            {session.user.name?.charAt(0).toUpperCase()}
+        <div className="px-6 py-4 flex-shrink-0" style={{ borderBottom: '1px solid rgba(255, 255, 255, 0.1)' }}>
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-full flex items-center justify-center text-sm font-semibold" style={{ background: 'var(--gold-primary)', color: 'var(--navy-primary)' }}>
+              {session.user.name?.charAt(0).toUpperCase()}
+            </div>
+            <div>
+              <div className="text-sm font-semibold" style={{ color: 'var(--text-on-dark)' }}>{session.user.name}</div>
+              <div className="text-xs mt-0.5" style={{ color: 'rgba(255, 255, 255, 0.7)' }}>Student</div>
+            </div>
           </div>
-          <div className="text-xs font-medium mb-1" style={{ color: '#1A2D5A' }}>{session.user.name}</div>
-          <div className="text-xs px-2 py-0.5 rounded-full inline-block" style={{ background: '#D1FAE5', color: '#065F46' }}>
-            ✓ Approved
+          <div className="badge badge-success mt-3">
+            Approved
           </div>
         </div>
 
         {/* Navigation */}
-        <nav className="p-1.5 flex flex-col gap-0.5 flex-1 overflow-auto">
+        <nav className="p-4 flex flex-col gap-2 flex-1 overflow-auto">
           <a 
             href="#" 
             onClick={(e) => { e.preventDefault(); setActiveTab('programs'); }}
-            className="flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-xs" 
-            style={activeTab === 'programs' ? { background: '#E8F0FE', color: '#1A2D5A', fontWeight: 500 } : { color: '#666666' }}
+            className={`sidebar-item ${activeTab === 'programs' ? 'sidebar-item-active' : ''}`}
           >
-            <svg className="w-3 h-3" viewBox="0 0 16 16" fill="none">
-              <rect x="1" y="1" width="6" height="6" rx="1.5" fill="currentColor"/>
-              <rect x="9" y="1" width="6" height="6" rx="1.5" fill="currentColor" opacity="0.3"/>
-              <rect x="1" y="9" width="6" height="6" rx="1.5" fill="currentColor" opacity="0.3"/>
-              <rect x="9" y="9" width="6" height="6" rx="1.5" fill="currentColor" opacity="0.3"/>
+            <svg className="w-5 h-5" viewBox="0 0 20 20" fill="none">
+              <rect x="2" y="2" width="7" height="7" rx="2" fill="currentColor"/>
+              <rect x="11" y="2" width="7" height="7" rx="2" fill="currentColor" opacity="0.3"/>
+              <rect x="2" y="11" width="7" height="7" rx="2" fill="currentColor" opacity="0.3"/>
+              <rect x="11" y="11" width="7" height="7" rx="2" fill="currentColor" opacity="0.3"/>
             </svg>
-            Programs
+            <span>Programs</span>
           </a>
           <a 
             href="#" 
             onClick={(e) => { e.preventDefault(); setActiveTab('exams'); }}
-            className="flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-xs" 
-            style={activeTab === 'exams' ? { background: '#E8F0FE', color: '#1A2D5A', fontWeight: 500 } : { color: '#666666' }}
+            className={`sidebar-item ${activeTab === 'exams' ? 'sidebar-item-active' : ''}`}
           >
-            <svg className="w-3 h-3" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.2">
-              <rect x="2" y="3" width="12" height="10" rx="1.5"/>
-              <path d="M5 7h6M5 10h4" strokeLinecap="round"/>
+            <svg className="w-5 h-5" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.5">
+              <rect x="3" y="4" width="14" height="12" rx="2"/>
+              <path d="M6 8h8M6 12h5" strokeLinecap="round"/>
             </svg>
-            Exams
+            <span>Exams</span>
           </a>
         </nav>
+
+        {/* Sign Out */}
+        <div className="p-4 flex-shrink-0" style={{ borderTop: '1px solid rgba(255, 255, 255, 0.1)' }}>
+          <button
+            onClick={() => router.push('/api/auth/signout')}
+            className="w-full sidebar-item justify-center"
+          >
+            <svg className="w-5 h-5" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.5">
+              <path d="M13 3h3a2 2 0 012 2v10a2 2 0 01-2 2h-3M7 16l-4-4m0 0l4-4m-4 4h12" strokeLinecap="round" strokeLinejoin="round"/>
+            </svg>
+            <span>Sign Out</span>
+          </button>
+        </div>
       </div>
 
       {/* Main Content */}
       <div className="flex flex-col h-screen overflow-hidden">
         {/* Header */}
-        <div className="bg-white px-4 py-2 flex items-center justify-between flex-shrink-0" style={{ borderBottom: '1px solid #E5E5E5' }}>
-          <h1 className="text-sm font-semibold" style={{ color: '#1A2D5A' }}>
-            {activeTab === 'programs' ? 'Your Programs' : 'My Exams'}
-          </h1>
-          <button
-            onClick={() => router.push('/api/auth/signout')}
-            className="text-xs px-3 py-1.5 rounded-lg hover:bg-gray-50 transition-colors" style={{ border: '1px solid #E5E5E5', color: '#666666' }}
-          >
-            Sign out
-          </button>
+        <div className="bg-white px-8 py-6 flex items-center justify-between flex-shrink-0" style={{ borderBottom: '1px solid var(--gray-200)' }}>
+          <div>
+            <h1 className="text-2xl font-bold" style={{ color: 'var(--navy-primary)' }}>
+              {activeTab === 'programs' ? 'Your Programs' : 'My Exams'}
+            </h1>
+            <p className="text-sm mt-1" style={{ color: 'var(--text-secondary)' }}>
+              {activeTab === 'programs' ? 'Programs you have applied to' : 'View and take your scheduled exams'}
+            </p>
+          </div>
         </div>
 
         {/* Content */}
-        <div className="flex-1 overflow-auto p-3 space-y-2">
+        <div className="flex-1 overflow-auto p-8">
           {activeTab === 'programs' ? (
-            <>
+            <div className="space-y-6">
+              {/* Stats Cards */}
+              <div className="grid grid-cols-3 gap-6">
+                <div className="card-stat">
+                  <div className="text-sm font-semibold mb-2" style={{ color: 'var(--text-secondary)' }}>Programs Applied</div>
+                  <div className="text-3xl font-bold" style={{ color: 'var(--navy-primary)' }}>{selectedSchools.length}</div>
+                  <div className="text-xs mt-2" style={{ color: 'var(--text-secondary)' }}>Total programs</div>
+                </div>
+                <div className="card-stat">
+                  <div className="text-sm font-semibold mb-2" style={{ color: 'var(--text-secondary)' }}>Exams Scheduled</div>
+                  <div className="text-3xl font-bold" style={{ color: 'var(--navy-primary)' }}>{exams.length}</div>
+                  <div className="text-xs mt-2" style={{ color: 'var(--text-secondary)' }}>Upcoming exams</div>
+                </div>
+                <div className="card-stat">
+                  <div className="text-sm font-semibold mb-2" style={{ color: 'var(--text-secondary)' }}>Results Available</div>
+                  <div className="text-3xl font-bold" style={{ color: 'var(--navy-primary)' }}>0</div>
+                  <div className="text-xs mt-2" style={{ color: 'var(--text-secondary)' }}>Completed exams</div>
+                </div>
+              </div>
+
               {/* Programs Section */}
               <div>
-                <div className="text-xs font-medium mb-2" style={{ color: '#666666' }}>SELECTED PROGRAMS</div>
+                <h2 className="text-lg font-semibold mb-4" style={{ color: 'var(--navy-primary)' }}>Selected Programs</h2>
                 <SchoolProgramList selectedSchools={selectedSchools} />
               </div>
-            </>
+            </div>
           ) : (
-            <>
+            <div className="space-y-6">
               {/* Stats Card */}
-              <div className="bg-white rounded-lg p-2.5" style={{ border: '1px solid #E5E5E5' }}>
-                <div className="text-xs font-medium mb-1" style={{ color: '#666666' }}>UPCOMING EXAMS</div>
-                <div className="text-xl font-bold" style={{ color: '#1A2D5A' }}>{exams.length}</div>
+              <div className="card-stat max-w-sm">
+                <div className="text-sm font-semibold mb-2" style={{ color: 'var(--text-secondary)' }}>Upcoming Exams</div>
+                <div className="text-3xl font-bold" style={{ color: 'var(--navy-primary)' }}>{exams.length}</div>
+                <div className="text-xs mt-2" style={{ color: 'var(--text-secondary)' }}>Scheduled exams</div>
               </div>
 
               {/* Exams List */}
               <div>
-                <div className="text-xs font-medium mb-2" style={{ color: '#666666' }}>SCHEDULED EXAMS</div>
+                <h2 className="text-lg font-semibold mb-4" style={{ color: 'var(--navy-primary)' }}>Scheduled Exams</h2>
                 <StudentExamList exams={exams} />
               </div>
-            </>
+            </div>
           )}
         </div>
       </div>

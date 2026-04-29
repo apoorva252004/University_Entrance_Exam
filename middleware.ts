@@ -2,15 +2,24 @@ import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 
 /**
- * Simplified middleware - auth checks are handled in individual pages
- * This is because NextAuth with bcrypt doesn't work well in Edge runtime
+ * Simplified middleware for Next.js 16
+ * Auth checks are handled in individual pages due to Edge runtime limitations
  */
 export function middleware(request: NextRequest) {
-  // Just pass through all requests
+  // Just pass through - auth is handled in pages
   return NextResponse.next();
 }
 
-// Don't run middleware on any routes
 export const config = {
-  matcher: [],
+  matcher: [
+    /*
+     * Match all request paths except for the ones starting with:
+     * - api (API routes)
+     * - _next/static (static files)
+     * - _next/image (image optimization files)
+     * - favicon.ico (favicon file)
+     */
+    '/((?!api|_next/static|_next/image|favicon.ico).*)',
+  ],
 };
+

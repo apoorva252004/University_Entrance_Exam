@@ -23,54 +23,53 @@ export default function SchoolProgramList({ selectedSchools }: SchoolProgramList
 
   if (selectedSchools.length === 0) {
     return (
-      <div className="text-center py-4 bg-white rounded-lg" style={{ border: '1px solid #E5E5E5' }}>
-        <p className="text-xs" style={{ color: '#666666' }}>No schools selected</p>
+      <div className="card text-center py-12">
+        <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>No schools selected</p>
       </div>
     );
   }
 
-  const badgeColors = [
-    { bg: '#E8F0FE', text: '#1A2D5A' },
-    { bg: '#D1FAE5', text: '#065F46' }
-  ];
-  
-  const pillColors = [
-    { bg: '#E8F0FE', text: '#1A2D5A' },
-    { bg: '#D1FAE5', text: '#065F46' }
-  ];
-
   return (
-    <div className="space-y-2">
+    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
       {schoolNames.map((schoolName, index) => (
-        <div key={schoolName} className="bg-white rounded-lg" style={{ border: '1px solid #E5E5E5', padding: '0.625rem 0.875rem' }}>
+        <div key={schoolName} className="card">
           {/* School Header */}
-          <div className="flex items-center gap-2 mb-2">
-            <span 
-              className="w-6 h-6 flex items-center justify-center rounded-full text-xs font-medium flex-shrink-0"
-              style={{ background: badgeColors[index % 2].bg, color: badgeColors[index % 2].text }}
+          <div className="flex items-start gap-3 mb-4">
+            <div 
+              className="w-10 h-10 flex items-center justify-center rounded-lg text-base font-bold flex-shrink-0"
+              style={{ background: 'var(--gold-primary)', color: 'var(--navy-primary)' }}
             >
               {index + 1}
-            </span>
-            <h3 className="text-xs font-medium" style={{ color: '#1A2D5A' }}>{schoolName}</h3>
+            </div>
+            <div className="flex-1">
+              <h3 className="text-base font-semibold mb-1" style={{ color: 'var(--navy-primary)' }}>{schoolName}</h3>
+              <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>{groupedBySchool[schoolName].length} program{groupedBySchool[schoolName].length > 1 ? 's' : ''}</p>
+            </div>
           </div>
 
-          {/* Programs Row */}
-          <div className="flex items-center justify-between gap-2 pt-2" style={{ borderTop: '1px solid #E5E5E5' }}>
-            <div className="flex gap-1.5 flex-wrap">
-              {groupedBySchool[schoolName].map((program, idx) => (
-                <span 
-                  key={idx} 
-                  className="text-xs px-2 py-0.5 rounded-full font-medium"
-                  style={{ background: pillColors[index % 2].bg, color: pillColors[index % 2].text }}
-                >
+          {/* Programs List */}
+          <div className="space-y-2 pt-4" style={{ borderTop: '1px solid var(--gray-200)' }}>
+            {groupedBySchool[schoolName].map((program, idx) => (
+              <div 
+                key={idx} 
+                className="flex items-center justify-between p-3 rounded-lg"
+                style={{ background: 'var(--bg-main)' }}
+              >
+                <span className="text-sm font-medium" style={{ color: 'var(--navy-primary)' }}>
                   {program}
                 </span>
-              ))}
-            </div>
-            <div className="flex items-center gap-1.5 text-xs px-2 py-0.5 rounded-lg flex-shrink-0" style={{ background: '#FEF3C7', color: '#92400E' }}>
-              <span className="w-1 h-1 rounded-full flex-shrink-0" style={{ background: '#D97706' }}></span>
-              <span className="whitespace-nowrap">Coming soon</span>
-            </div>
+                <span className="badge badge-warning text-xs">
+                  Coming Soon
+                </span>
+              </div>
+            ))}
+          </div>
+
+          {/* Action Button */}
+          <div className="mt-4 pt-4" style={{ borderTop: '1px solid var(--gray-200)' }}>
+            <button className="btn-secondary w-full" disabled>
+              View Details
+            </button>
           </div>
         </div>
       ))}

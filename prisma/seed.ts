@@ -123,13 +123,15 @@ async function main() {
     data: {
       name: 'System Admin',
       email: 'admin@rvu.edu.in',
+      username: 'admin',
       password: hashedAdminPassword,
       phone: '9876543210',
       role: 'ADMIN',
-      status: 'APPROVED',
+      status: 'ACTIVE',
+      isFirstLogin: false, // Admin doesn't need to change password
     },
   });
-  console.log(`Created admin: ${admin.email}`);
+  console.log(`Created admin: ${admin.email} (username: ${admin.username})`);
 
   // Create 2 teachers per school (18 total)
   console.log('Creating teachers...');
@@ -155,19 +157,22 @@ async function main() {
       const hashedTeacherPassword = await bcrypt.hash('teacher123', 10);
       const teacherEmail = `${abbr}t${i}@rvu.edu.in`;
       const teacherName = `${abbr.toUpperCase()}T${i}`;
+      const teacherUsername = `${abbr}t${i}`;
       
       const teacher = await prisma.user.create({
         data: {
           name: teacherName,
           email: teacherEmail,
+          username: teacherUsername,
           password: hashedTeacherPassword,
           phone: `9876543${String(Math.floor(Math.random() * 1000)).padStart(3, '0')}`,
           role: 'TEACHER',
-          status: 'APPROVED',
+          status: 'ACTIVE',
           assignedSchool: school.name,
+          isFirstLogin: false, // Teachers don't need to change password on first login
         },
       });
-      console.log(`Created teacher: ${teacher.email} (${teacher.name}) assigned to ${school.name}`);
+      console.log(`Created teacher: ${teacher.email} (username: ${teacher.username}) assigned to ${school.name}`);
     }
   }
 

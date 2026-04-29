@@ -131,7 +131,7 @@ describe("GET /api/admin/students", () => {
           name: "John Doe",
           email: "john@test.com",
           phone: "9876543210",
-          selectedSchools: [
+          selectedSchools: JSON.stringify([
             {
               schoolName: "School of Computer Science & Engineering",
               programName: "B.Tech CSE",
@@ -140,7 +140,7 @@ describe("GET /api/admin/students", () => {
               schoolName: "School of Business",
               programName: "BBA",
             },
-          ],
+          ]),
           createdAt: new Date("2024-01-15T10:00:00Z"),
         },
         {
@@ -148,12 +148,12 @@ describe("GET /api/admin/students", () => {
           name: "Jane Smith",
           email: "jane@test.com",
           phone: "9876543211",
-          selectedSchools: [
+          selectedSchools: JSON.stringify([
             {
               schoolName: "School of Law",
               programName: "BA LLB",
             },
-          ],
+          ]),
           createdAt: new Date("2024-01-14T09:00:00Z"),
         },
       ];

@@ -1,10 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import bcrypt from "bcrypt";
+import { generateUsername } from "@/lib/utils/username";
+import { generateSecurePassword } from "@/lib/utils/password";
+import { isValidEmail, isValidPhone } from "@/lib/utils/validation";
 
 /**
  * Student Registration API Route
- * Simplified version for signup form
+ * Auto-generates username and password for new students
  *
  * Handles POST requests for student registration with school selection
  */
@@ -12,15 +15,18 @@ import bcrypt from "bcrypt";
 interface RegisterRequestBody {
   name: string;
   email: string;
-  password: string;
-  selectedSchools?: string[]; // Array of school IDs
+  phone: string;
+  selectedSchools: {
+    schoolId: string;
+    programIds: string[];
+  }[];
 }
 
 export async function POST(request: NextRequest) {
   try {
     // Parse request body
     const body: RegisterRequestBody = await request.json();
-    const { name, email, password, selectedSchools = [] } = body;
+    const { name, email, phone, selectedSchools = [] } = body;
 
     // Validation errors array
     const errors: string[] = [];
@@ -30,18 +36,23 @@ export async function POST(request: NextRequest) {
       errors.push("Name is required");
     }
 
-    if (!email || !email.includes("@")) {
+    if (!isValidEmail(email)) {
       errors.push("Invalid email format");
     }
 
-    if (!password || password.length < 8) {
-      errors.push("Password must be at least 8 characters");
+    // Phone is optional, only validate if provided
+    if (phone && phone.trim().length > 0 && !isValidPhone(phone)) {
+      errors.push("Invalid phone number format (must be 10 digits)");
+    }
+
+    if (!selectedSchools || selectedSchools.length === 0) {
+      errors.push("Select at least one school and one program");
     }
 
     // Return validation errors if any
     if (errors.length > 0) {
       return NextResponse.json(
-        { success: false, error: errors.join(", ") },
+        { success: false, errors },
         { status: 400 }
       );
     }
@@ -55,39 +66,95 @@ export async function POST(request: NextRequest) {
       return NextResponse.json(
         {
           success: false,
-          error: "Email already registered. Please login or use a different email.",
+          message: "Email already registered. Please login or use a different email.",
         },
         { status: 409 }
       );
     }
 
-    // Hash password with bcrypt (10 rounds)
-    const hashedPassword = await bcrypt.hash(password, 10);
+    // Generate unique username (firstname + 3-digit number)
+    let username: string;
+    try {
+      username = await generateUsername(name.trim());
+    } catch (error) {
+      console.error("Username generation error:", error);
+      return NextResponse.json(
+        {
+          success: false,
+          message: "Unable to generate unique username. Please try again.",
+        },
+        { status: 500 }
+      );
+    }
 
-    // Convert selectedSchools array to JSON string for SQLite
-    const selectedSchoolsString = selectedSchools.length > 0 
-      ? JSON.stringify(selectedSchools) 
-      : null;
+    // Generate secure password (8-10 characters)
+    const plainPassword = generateSecurePassword();
 
-    // Create user with role STUDENT, status PENDING
+    // Hash the generated password
+    const hashedPassword = await bcrypt.hash(plainPassword, 10);
+
+    // Transform selectedSchools to JSON format for storage
+    // Convert from { schoolId, programIds[] } to [{ schoolName, programName }]
+    const selectedSchoolsArray: { schoolName: string; programName: string }[] = [];
+    
+    for (const selection of selectedSchools) {
+      const school = await prisma.school.findUnique({
+        where: { id: selection.schoolId },
+        include: { programs: true },
+      });
+
+      if (!school) {
+        return NextResponse.json(
+          {
+            success: false,
+            message: "Invalid school selected",
+          },
+          { status: 400 }
+        );
+      }
+
+      for (const programId of selection.programIds) {
+        const program = school.programs.find((p) => p.id === programId);
+        if (!program) {
+          return NextResponse.json(
+            {
+              success: false,
+              message: "Invalid program selected",
+            },
+            { status: 400 }
+          );
+        }
+        selectedSchoolsArray.push({
+          schoolName: school.name,
+          programName: program.name,
+        });
+      }
+    }
+
+    // Create user with role STUDENT, status APPROVED, isFirstLogin TRUE
     const user = await prisma.user.create({
       data: {
         name: name.trim(),
         email: email.trim(),
+        username: username,
         password: hashedPassword,
-        phone: "", // Optional field, can be empty
+        phone: phone && phone.trim().length > 0 ? phone.trim() : null,
         role: "STUDENT",
-        status: "PENDING",
-        selectedSchools: selectedSchoolsString,
+        status: "APPROVED",
+        isFirstLogin: true,
+        selectedSchools: JSON.stringify(selectedSchoolsArray),
       },
     });
 
-    // Return success response with userId
+    // Return success response with userId, username, and plain-text password
+    // Password is only returned once - user must save it
     return NextResponse.json(
       {
         success: true,
-        message: "Registration successful. Waiting for admin approval.",
+        message: "Registration successful. Please wait for admin approval.",
         userId: user.id,
+        username: username,
+        password: plainPassword, // Plain text password (only returned once)
       },
       { status: 201 }
     );
@@ -98,7 +165,7 @@ export async function POST(request: NextRequest) {
         return NextResponse.json(
           {
             success: false,
-            error: "Email already registered. Please login or use a different email.",
+            message: "Email or username already registered. Please try again.",
           },
           { status: 409 }
         );
@@ -112,9 +179,10 @@ export async function POST(request: NextRequest) {
     return NextResponse.json(
       {
         success: false,
-        error: "Internal server error. Please try again later.",
+        message: "Internal server error. Please try again later.",
       },
       { status: 500 }
     );
   }
 }
+

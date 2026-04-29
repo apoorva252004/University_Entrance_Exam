@@ -30,6 +30,7 @@ interface Exam {
   duration: number;
   totalMarks: number;
   status: string;
+  mode: string;
   venue: string | null;
   program: {
     id: string;
@@ -63,8 +64,16 @@ export default function TeacherDashboard() {
   useEffect(() => {
     if (status === 'unauthenticated') {
       router.push('/login');
-    } else if (status === 'authenticated' && session?.user?.role !== 'TEACHER') {
-      router.push('/');
+    } else if (status === 'authenticated') {
+      // Check if first login - redirect to change password
+      if (session?.user?.isFirstLogin) {
+        router.push('/change-password');
+        return;
+      }
+      
+      if (session?.user?.role !== 'TEACHER') {
+        router.push('/');
+      }
     }
   }, [status, session, router]);
 
@@ -239,115 +248,149 @@ export default function TeacherDashboard() {
   }
 
   return (
-    <div className="h-screen grid overflow-hidden" style={{ gridTemplateColumns: '180px 1fr', background: '#F5F5F5' }}>
-      {/* Sidebar */}
-      <div className="bg-white flex flex-col h-screen overflow-hidden" style={{ borderRight: '1px solid #E5E5E5' }}>
+    <div className="h-screen grid overflow-hidden" style={{ gridTemplateColumns: '240px 1fr', background: 'var(--bg-main)' }}>
+      {/* Sidebar - Navy Background */}
+      <div className="sidebar flex flex-col h-screen overflow-hidden">
+        {/* Logo/Brand */}
+        <div className="p-6 flex-shrink-0" style={{ borderBottom: '1px solid rgba(255, 255, 255, 0.1)' }}>
+          <h2 className="text-lg font-bold" style={{ color: 'var(--text-on-dark)' }}>RV University</h2>
+          <p className="text-xs mt-1" style={{ color: 'rgba(255, 255, 255, 0.7)' }}>Teacher Portal</p>
+        </div>
+
         {/* Profile Header */}
-        <div className="p-2.5 flex-shrink-0" style={{ borderBottom: '1px solid #E5E5E5' }}>
-          <div className="w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium mb-2" style={{ background: '#E8F0FE', color: '#1A2D5A' }}>
-            {session?.user?.name?.charAt(0).toUpperCase()}
+        <div className="px-6 py-4 flex-shrink-0" style={{ borderBottom: '1px solid rgba(255, 255, 255, 0.1)' }}>
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-full flex items-center justify-center text-sm font-semibold" style={{ background: 'var(--gold-primary)', color: 'var(--navy-primary)' }}>
+              {session?.user?.name?.charAt(0).toUpperCase()}
+            </div>
+            <div>
+              <div className="text-sm font-semibold" style={{ color: 'var(--text-on-dark)' }}>{session?.user?.name}</div>
+              <div className="text-xs mt-0.5" style={{ color: 'rgba(255, 255, 255, 0.7)' }}>Teacher</div>
+            </div>
           </div>
-          <div className="text-xs font-medium mb-1" style={{ color: '#1A2D5A' }}>{session?.user?.name}</div>
-          <div className="text-xs px-2 py-0.5 rounded-full inline-block" style={{ background: '#E8F0FE', color: '#1A2D5A' }}>
-            ✓ Teacher
+          <div className="text-xs mt-3 px-3 py-1.5 rounded-lg" style={{ background: 'rgba(255, 255, 255, 0.1)', color: 'var(--text-on-dark)' }}>
+            {studentsData?.assignedSchool}
           </div>
         </div>
 
         {/* Navigation */}
-        <nav className="p-1.5 flex flex-col gap-0.5 flex-1 overflow-auto">
+        <nav className="p-4 flex flex-col gap-2 flex-1 overflow-auto">
           <a 
             href="#" 
             onClick={(e) => { e.preventDefault(); setActiveTab('students'); }}
-            className="flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-xs" 
-            style={activeTab === 'students' ? { background: '#E8F0FE', color: '#1A2D5A', fontWeight: 500 } : { color: '#666666' }}
+            className={`sidebar-item ${activeTab === 'students' ? 'sidebar-item-active' : ''}`}
           >
-            <svg className="w-3 h-3" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.2">
-              <circle cx="8" cy="5" r="3"/>
-              <path d="M2 14c0-3.314 2.686-5 6-5s6 1.686 6 5" strokeLinecap="round"/>
+            <svg className="w-5 h-5" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.5">
+              <circle cx="10" cy="7" r="4"/>
+              <path d="M3 18c0-3.866 3.134-7 7-7s7 3.134 7 7" strokeLinecap="round"/>
             </svg>
-            Students
+            <span>Students</span>
           </a>
           <a 
             href="#" 
             onClick={(e) => { e.preventDefault(); setActiveTab('exams'); }}
-            className="flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-xs" 
-            style={activeTab === 'exams' ? { background: '#E8F0FE', color: '#1A2D5A', fontWeight: 500 } : { color: '#666666' }}
+            className={`sidebar-item ${activeTab === 'exams' ? 'sidebar-item-active' : ''}`}
           >
-            <svg className="w-3 h-3" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.2">
-              <rect x="2" y="3" width="12" height="10" rx="1.5"/>
-              <path d="M5 7h6M5 10h4" strokeLinecap="round"/>
+            <svg className="w-5 h-5" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.5">
+              <rect x="3" y="4" width="14" height="12" rx="2"/>
+              <path d="M6 8h8M6 12h5" strokeLinecap="round"/>
             </svg>
-            Exams
+            <span>Exams</span>
           </a>
           <a 
             href="#" 
             onClick={(e) => { e.preventDefault(); setActiveTab('create-exam'); }}
-            className="flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-xs" 
-            style={activeTab === 'create-exam' ? { background: '#E8F0FE', color: '#1A2D5A', fontWeight: 500 } : { color: '#666666' }}
+            className={`sidebar-item ${activeTab === 'create-exam' ? 'sidebar-item-active' : ''}`}
           >
-            <svg className="w-3 h-3" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.2">
-              <path d="M8 3v10M3 8h10" strokeLinecap="round"/>
+            <svg className="w-5 h-5" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.5">
+              <path d="M10 4v12M4 10h12" strokeLinecap="round"/>
             </svg>
-            Create
+            <span>Create Exam</span>
           </a>
         </nav>
+
+        {/* Sign Out */}
+        <div className="p-4 flex-shrink-0" style={{ borderTop: '1px solid rgba(255, 255, 255, 0.1)' }}>
+          <button
+            onClick={() => router.push('/api/auth/signout')}
+            className="w-full sidebar-item justify-center"
+          >
+            <svg className="w-5 h-5" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.5">
+              <path d="M13 3h3a2 2 0 012 2v10a2 2 0 01-2 2h-3M7 16l-4-4m0 0l4-4m-4 4h12" strokeLinecap="round" strokeLinejoin="round"/>
+            </svg>
+            <span>Sign Out</span>
+          </button>
+        </div>
       </div>
 
       {/* Main Content */}
       <div className="flex flex-col h-screen overflow-hidden">
         {/* Header */}
-        <div className="bg-white px-4 py-2 flex items-center justify-between flex-shrink-0" style={{ borderBottom: '1px solid #E5E5E5' }}>
+        <div className="bg-white px-8 py-6 flex items-center justify-between flex-shrink-0" style={{ borderBottom: '1px solid var(--gray-200)' }}>
           <div>
-            <h1 className="text-sm font-semibold" style={{ color: '#1A2D5A' }}>
+            <h1 className="text-2xl font-bold" style={{ color: 'var(--navy-primary)' }}>
               {activeTab === 'students' && 'Students'}
               {activeTab === 'exams' && 'Exams'}
               {activeTab === 'create-exam' && 'Create Exam'}
               {activeTab === 'manage-questions' && 'Manage Questions'}
               {activeTab === 'exam-results' && 'Exam Results'}
             </h1>
-            <p className="text-xs mt-0.5" style={{ color: '#666666' }}>{studentsData?.assignedSchool}</p>
+            <p className="text-sm mt-1" style={{ color: 'var(--text-secondary)' }}>
+              {activeTab === 'students' && 'View enrolled students'}
+              {activeTab === 'exams' && 'Manage your exams'}
+              {activeTab === 'create-exam' && 'Create a new exam'}
+              {activeTab === 'manage-questions' && 'Add and edit questions'}
+              {activeTab === 'exam-results' && 'View student results'}
+            </p>
           </div>
-          <button
-            onClick={() => router.push('/api/auth/signout')}
-            className="text-xs px-3 py-1.5 rounded-lg hover:bg-gray-50 transition-colors" 
-            style={{ color: '#666666', border: '1px solid #E5E5E5' }}
-          >
-            Sign out
-          </button>
         </div>
 
         {/* Content */}
-        <div className="flex-1 overflow-auto p-3 space-y-2">
+        <div className="flex-1 overflow-auto p-8">
           {activeTab === 'students' && (
-            <>
-              {/* Stats Card */}
-              <div className="bg-white rounded-lg p-2.5" style={{ border: '1px solid #E5E5E5' }}>
-                <div className="text-xs font-medium mb-1" style={{ color: '#666666' }}>TOTAL STUDENTS</div>
-                <div className="text-xl font-bold" style={{ color: '#1A2D5A' }}>{studentsData?.students.length}</div>
+            <div className="space-y-6">
+              {/* Stats Cards */}
+              <div className="grid grid-cols-3 gap-6">
+                <div className="card-stat">
+                  <div className="text-sm font-semibold mb-2" style={{ color: 'var(--text-secondary)' }}>Total Students</div>
+                  <div className="text-3xl font-bold" style={{ color: 'var(--navy-primary)' }}>{studentsData?.students.length}</div>
+                  <div className="text-xs mt-2" style={{ color: 'var(--text-secondary)' }}>Enrolled in your school</div>
+                </div>
+                <div className="card-stat">
+                  <div className="text-sm font-semibold mb-2" style={{ color: 'var(--text-secondary)' }}>Exams Created</div>
+                  <div className="text-3xl font-bold" style={{ color: 'var(--navy-primary)' }}>{exams.length}</div>
+                  <div className="text-xs mt-2" style={{ color: 'var(--text-secondary)' }}>Total exams</div>
+                </div>
+                <div className="card-stat">
+                  <div className="text-sm font-semibold mb-2" style={{ color: 'var(--text-secondary)' }}>Active Exams</div>
+                  <div className="text-3xl font-bold" style={{ color: 'var(--navy-primary)' }}>{exams.filter(e => e.status === 'PUBLISHED').length}</div>
+                  <div className="text-xs mt-2" style={{ color: 'var(--text-secondary)' }}>Currently published</div>
+                </div>
               </div>
 
               {/* Students Table */}
               <div>
-                <div className="text-xs font-medium mb-2" style={{ color: '#666666' }}>ENROLLED STUDENTS</div>
+                <h2 className="text-lg font-semibold mb-4" style={{ color: 'var(--navy-primary)' }}>Enrolled Students</h2>
                 <StudentListTable
                   students={studentsData?.students || []}
                   assignedSchool={studentsData?.assignedSchool || ''}
                 />
               </div>
-            </>
+            </div>
           )}
 
           {activeTab === 'exams' && (
-            <>
+            <div className="space-y-6">
               {/* Stats Card */}
-              <div className="bg-white rounded-lg p-2.5" style={{ border: '1px solid #E5E5E5' }}>
-                <div className="text-xs font-medium mb-1" style={{ color: '#666666' }}>TOTAL EXAMS</div>
-                <div className="text-xl font-bold" style={{ color: '#1A2D5A' }}>{exams.length}</div>
+              <div className="card-stat max-w-sm">
+                <div className="text-sm font-semibold mb-2" style={{ color: 'var(--text-secondary)' }}>Total Exams</div>
+                <div className="text-3xl font-bold" style={{ color: 'var(--navy-primary)' }}>{exams.length}</div>
+                <div className="text-xs mt-2" style={{ color: 'var(--text-secondary)' }}>All exams created</div>
               </div>
 
               {/* Exams Table */}
               <div>
-                <div className="text-xs font-medium mb-2" style={{ color: '#666666' }}>ALL EXAMS</div>
+                <h2 className="text-lg font-semibold mb-4" style={{ color: 'var(--navy-primary)' }}>All Exams</h2>
                 <ExamListTable 
                   exams={exams} 
                   onManageQuestions={handleManageQuestions} 
@@ -357,7 +400,7 @@ export default function TeacherDashboard() {
                   onViewResults={handleViewResults}
                 />
               </div>
-            </>
+            </div>
           )}
 
           {activeTab === 'create-exam' && (
@@ -372,13 +415,12 @@ export default function TeacherDashboard() {
             <div>
               <button
                 onClick={() => setActiveTab('exams')}
-                className="text-xs px-2.5 py-1.5 rounded-lg mb-3 flex items-center gap-2 hover:bg-gray-50 transition-colors"
-                style={{ color: '#666666', border: '1px solid #E5E5E5' }}
+                className="btn-secondary mb-6 flex items-center gap-2"
               >
-                <svg className="w-3 h-3" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.2">
+                <svg className="w-4 h-4" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5">
                   <path d="M10 12L6 8l4-4" strokeLinecap="round" strokeLinejoin="round"/>
                 </svg>
-                Back
+                Back to Exams
               </button>
               <QuestionManager 
                 examId={selectedExamId}
@@ -392,13 +434,12 @@ export default function TeacherDashboard() {
             <div>
               <button
                 onClick={() => setActiveTab('exams')}
-                className="text-xs px-2.5 py-1.5 rounded-lg mb-3 flex items-center gap-2 hover:bg-gray-50 transition-colors"
-                style={{ color: '#666666', border: '1px solid #E5E5E5' }}
+                className="btn-secondary mb-6 flex items-center gap-2"
               >
-                <svg className="w-3 h-3" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.2">
+                <svg className="w-4 h-4" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5">
                   <path d="M10 12L6 8l4-4" strokeLinecap="round" strokeLinejoin="round"/>
                 </svg>
-                Back
+                Back to Exams
               </button>
               <ExamResults 
                 examId={selectedExamId}
@@ -411,12 +452,12 @@ export default function TeacherDashboard() {
 
       {/* Toast Notification */}
       {toast && (
-        <div className="fixed top-4 right-4 z-50">
+        <div className="fixed top-4 right-4 z-50 animate-slide-up">
           <div
-            className={`px-3 py-2 rounded-lg shadow-lg text-xs ${
+            className={`px-4 py-3 rounded-lg shadow-lg text-sm font-medium ${
               toast.type === 'success'
-                ? 'bg-green-600 text-white'
-                : 'bg-red-600 text-white'
+                ? 'bg-success text-white'
+                : 'bg-error text-white'
             }`}
           >
             {toast.message}

@@ -1,4 +1,4 @@
-import NextAuth, { CredentialsSignin } from "next-auth";
+import NextAuth, { CredentialsSignin, NextAuthConfig } from "next-auth";
 import Credentials from "next-auth/providers/credentials";
 import { prisma } from "@/lib/prisma";
 import bcrypt from "bcrypt";
@@ -14,26 +14,26 @@ class ApplicationRejectedError extends CredentialsSignin {
   code = "APPLICATION_REJECTED";
 }
 
-export const { handlers, auth, signIn, signOut } = NextAuth({
+export const authOptions: NextAuthConfig = {
   providers: [
     Credentials({
       name: "Credentials",
       credentials: {
-        email: { label: "Email", type: "email" },
+        username: { label: "Username", type: "text" },
         password: { label: "Password", type: "password" },
       },
       async authorize(credentials) {
         // Validate credentials exist
-        if (!credentials?.email || !credentials?.password) {
+        if (!credentials?.username || !credentials?.password) {
           return null;
         }
 
-        const email = credentials.email as string;
+        const username = credentials.username as string;
         const password = credentials.password as string;
 
-        // Find user by email
+        // Find user by username
         const user = await prisma.user.findUnique({
-          where: { email },
+          where: { username },
         });
 
         // User not found
@@ -47,14 +47,14 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           return null;
         }
 
-        // Check student status
-        if (user.role === "STUDENT") {
-          if (user.status === "PENDING") {
-            throw new PendingApprovalError("Waiting for admin approval");
-          }
-          if (user.status === "REJECTED") {
-            throw new ApplicationRejectedError("Your application has been rejected");
-          }
+        // Check if student with pending status
+        if (user.role === "STUDENT" && user.status === "PENDING") {
+          throw new PendingApprovalError("Waiting for admin approval");
+        }
+
+        // Check if student with rejected status
+        if (user.role === "STUDENT" && user.status === "REJECTED") {
+          throw new ApplicationRejectedError("Your application has been rejected");
         }
 
         // Return user object with required fields
@@ -62,8 +62,10 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           id: user.id,
           name: user.name,
           email: user.email,
+          username: user.username,
           role: user.role,
           status: user.status,
+          isFirstLogin: user.isFirstLogin,
           selectedSchools: user.selectedSchools || null,
         } as any;
       },
@@ -74,8 +76,10 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       // Add user data to token on sign in
       if (user) {
         token.id = user.id;
+        token.username = (user as User).username;
         token.role = (user as User).role;
         token.status = (user as User).status;
+        token.isFirstLogin = (user as User).isFirstLogin;
         token.selectedSchools = (user as User).selectedSchools;
       }
       return token;
@@ -84,8 +88,10 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       // Add user data to session
       if (token && session.user) {
         session.user.id = token.id as string;
+        session.user.username = token.username as string;
         session.user.role = token.role as string;
         session.user.status = token.status as string;
+        session.user.isFirstLogin = token.isFirstLogin as boolean;
         session.user.selectedSchools = token.selectedSchools as string;
       }
       return session;
@@ -97,4 +103,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
   session: {
     strategy: "jwt",
   },
-});
+};
+
+export const { handlers, auth, signIn, signOut } = NextAuth(authOptions);
+
