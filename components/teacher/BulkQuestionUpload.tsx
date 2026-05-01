@@ -3,247 +3,175 @@
 import { useState, useRef, ChangeEvent } from 'react';
 
 interface QuestionRow {
-  question: string;
-  optionA: string;
-  optionB: string;
-  optionC: string;
-  optionD: string;
-  correctAnswer: string;
-  marks?: number;
+  question: string; optionA: string; optionB: string;
+  optionC: string; optionD: string; correctAnswer: string; marks?: number;
 }
+interface ValidationError { row: number; errors: string[]; }
+interface Props { examId: string; onUploadComplete: () => void; onClose: () => void; }
 
-interface ValidationError {
-  row: number;
-  errors: string[];
-}
-
-interface BulkQuestionUploadProps {
-  examId: string;
-  onUploadComplete: () => void;
-  onClose: () => void;
-}
-
-export default function BulkQuestionUpload({ examId, onUploadComplete, onClose }: BulkQuestionUploadProps) {
+export default function BulkQuestionUpload({ examId, onUploadComplete, onClose }: Props) {
   const [step, setStep] = useState<'upload' | 'preview' | 'success'>('upload');
   const [questions, setQuestions] = useState<QuestionRow[]>([]);
   const [validationErrors, setValidationErrors] = useState<ValidationError[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [dragOver, setDragOver] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const downloadTemplate = () => {
-    const csvContent = 'Question,Option A,Option B,Option C,Option D,Correct Answer,Marks\n' +
+    const csv = 'Question,Option A,Option B,Option C,Option D,Correct Answer,Marks\n' +
       '"What is 2+2?",2,3,4,5,C,1\n' +
-      '"What is the capital of France?",London,Paris,Berlin,Madrid,B,1\n' +
-      '"Which planet is known as the Red Planet?",Venus,Mars,Jupiter,Saturn,B,1';
-
-    const blob = new Blob([csvContent], { type: 'text/csv' });
-    const url = window.URL.createObjectURL(blob);
+      '"Capital of France?",London,Paris,Berlin,Madrid,B,1';
+    const blob = new Blob([csv], { type: 'text/csv' });
+    const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
-    a.href = url;
-    a.download = 'question_template.csv';
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    window.URL.revokeObjectURL(url);
+    a.href = url; a.download = 'question_template.csv';
+    document.body.appendChild(a); a.click();
+    document.body.removeChild(a); URL.revokeObjectURL(url);
   };
 
   const parseCSV = (text: string): QuestionRow[] => {
-    const lines = text.split('\n').filter(line => line.trim());
-    const headers = lines[0].split(',').map(h => h.trim().replace(/^"|"$/g, ''));
-    
-    const questions: QuestionRow[] = [];
-    
+    const lines = text.split('\n').filter(l => l.trim());
+    const result: QuestionRow[] = [];
     for (let i = 1; i < lines.length; i++) {
       const values: string[] = [];
-      let currentValue = '';
-      let insideQuotes = false;
-      
-      // Parse CSV with proper quote handling
-      for (let j = 0; j < lines[i].length; j++) {
-        const char = lines[i][j];
-        
-        if (char === '"') {
-          insideQuotes = !insideQuotes;
-        } else if (char === ',' && !insideQuotes) {
-          values.push(currentValue.trim());
-          currentValue = '';
-        } else {
-          currentValue += char;
-        }
+      let cur = ''; let inQ = false;
+      for (const ch of lines[i]) {
+        if (ch === '"') { inQ = !inQ; }
+        else if (ch === ',' && !inQ) { values.push(cur.trim()); cur = ''; }
+        else { cur += ch; }
       }
-      values.push(currentValue.trim());
-      
+      values.push(cur.trim());
       if (values.length >= 6) {
-        questions.push({
-          question: values[0],
-          optionA: values[1],
-          optionB: values[2],
-          optionC: values[3],
-          optionD: values[4],
-          correctAnswer: values[5],
-          marks: values[6] ? parseInt(values[6]) : 1,
-        });
+        result.push({ question: values[0], optionA: values[1], optionB: values[2], optionC: values[3], optionD: values[4], correctAnswer: values[5], marks: values[6] ? parseInt(values[6]) : 1 });
       }
     }
-    
-    return questions;
+    return result;
   };
 
-  const handleFileUpload = (e: ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
+  const processFile = (file: File) => {
     const reader = new FileReader();
-    reader.onload = (event) => {
+    reader.onload = (e) => {
       try {
-        const text = event.target?.result as string;
-        const parsedQuestions = parseCSV(text);
-        
-        if (parsedQuestions.length === 0) {
-          setError('No valid questions found in the file');
-          return;
-        }
-        
-        setQuestions(parsedQuestions);
-        setStep('preview');
-        setError('');
-      } catch (err) {
-        setError('Failed to parse CSV file. Please check the format.');
-      }
+        const parsed = parseCSV(e.target?.result as string);
+        if (parsed.length === 0) { setError('No valid questions found in the file'); return; }
+        setQuestions(parsed); setStep('preview'); setError('');
+      } catch { setError('Failed to parse CSV file. Please check the format.'); }
     };
-    
     reader.readAsText(file);
   };
 
-  const handleUpload = async () => {
-    setLoading(true);
-    setError('');
-    setValidationErrors([]);
+  const handleFileInput = (e: ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) processFile(file);
+  };
 
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault(); setDragOver(false);
+    const file = e.dataTransfer.files[0];
+    if (file && file.name.endsWith('.csv')) processFile(file);
+    else setError('Please upload a CSV file');
+  };
+
+  const handleUpload = async () => {
+    setLoading(true); setError(''); setValidationErrors([]);
     try {
-      const response = await fetch('/api/teacher/bulk-upload-questions', {
+      const res = await fetch('/api/teacher/bulk-upload-questions', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          examId,
-          questions,
-        }),
+        body: JSON.stringify({ examId, questions }),
       });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        if (data.validationErrors) {
-          setValidationErrors(data.validationErrors);
-          setError(`${data.invalidCount} question(s) have errors. Please fix them and try again.`);
-        } else {
-          setError(data.error || 'Failed to upload questions');
-        }
+      const data = await res.json();
+      if (!res.ok) {
+        if (data.validationErrors) { setValidationErrors(data.validationErrors); setError(`${data.invalidCount} question(s) have errors.`); }
+        else setError(data.error || 'Failed to upload questions');
         return;
       }
-
-      // Success
       setStep('success');
-      setTimeout(() => {
-        onUploadComplete();
-        onClose();
-      }, 2000);
-    } catch (err) {
-      setError('An error occurred while uploading questions');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const editQuestion = (index: number, field: keyof QuestionRow, value: string | number) => {
-    const updated = [...questions];
-    updated[index] = { ...updated[index], [field]: value };
-    setQuestions(updated);
-  };
-
-  const removeQuestion = (index: number) => {
-    setQuestions(questions.filter((_, i) => i !== index));
+      setTimeout(() => { onUploadComplete(); onClose(); }, 2000);
+    } catch { setError('An error occurred while uploading questions'); }
+    finally { setLoading(false); }
   };
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-xl shadow-2xl max-w-6xl w-full max-h-[90vh] overflow-hidden flex flex-col">
+    <div className="modal-overlay">
+      <div className="bg-white rounded-2xl overflow-hidden flex flex-col"
+        style={{ width: '100%', maxWidth: '860px', maxHeight: '90vh', boxShadow: '0 24px 64px rgba(0,0,0,0.20)' }}>
         {/* Header */}
-        <div className="px-6 py-4 border-b border-gray-200 flex items-center justify-between flex-shrink-0">
+        <div className="px-7 py-5 flex items-center justify-between flex-shrink-0"
+          style={{ borderBottom: '1px solid #EEF2F7', background: '#F8FAFC' }}>
           <div>
-            <h3 className="text-lg font-bold text-gray-900">Bulk Upload Questions</h3>
-            <p className="text-sm text-gray-600 mt-1">
+            <h3 className="font-bold text-lg" style={{ color: '#0F2D52' }}>Bulk Upload Questions</h3>
+            <p className="text-xs mt-0.5" style={{ color: '#6B7280' }}>
               {step === 'upload' && 'Upload a CSV file with your questions'}
-              {step === 'preview' && `Preview ${questions.length} question(s) before uploading`}
+              {step === 'preview' && `Review ${questions.length} question(s) before uploading`}
               {step === 'success' && 'Questions uploaded successfully!'}
             </p>
           </div>
-          <button
-            onClick={onClose}
-            className="text-gray-400 hover:text-gray-600 transition-colors"
-          >
-            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+          <button onClick={onClose} className="w-8 h-8 rounded-lg flex items-center justify-center"
+            style={{ background: '#F3F4F6', color: '#6B7280' }}>
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
             </svg>
           </button>
         </div>
 
         {/* Body */}
-        <div className="flex-1 overflow-y-auto p-6">
+        <div className="flex-1 overflow-y-auto p-7">
           {step === 'upload' && (
-            <div className="space-y-6">
-              {/* Download Template */}
-              <div className="bg-blue-50 border-2 border-blue-200 rounded-lg p-4">
-                <div className="flex items-start">
-                  <svg className="w-5 h-5 text-blue-600 mt-0.5 mr-3 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                    <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
-                  </svg>
-                  <div className="flex-1">
-                    <h4 className="text-sm font-semibold text-blue-900 mb-1">CSV Format Required</h4>
-                    <p className="text-sm text-blue-800 mb-3">
-                      Download the template to see the correct format. Your CSV must have these columns: Question, Option A, Option B, Option C, Option D, Correct Answer, Marks
-                    </p>
-                    <button
-                      onClick={downloadTemplate}
-                      className="inline-flex items-center px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold rounded-lg transition-colors"
-                    >
-                      <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                      </svg>
-                      Download Template
-                    </button>
-                  </div>
+            <div className="space-y-5">
+              {/* Template info */}
+              <div className="flex items-start gap-4 p-5 rounded-xl"
+                style={{ background: '#DBEAFE', border: '1px solid #93C5FD' }}>
+                <svg className="w-5 h-5 flex-shrink-0 mt-0.5" style={{ color: '#2563EB' }} fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
+                </svg>
+                <div className="flex-1">
+                  <p className="text-sm font-semibold mb-1" style={{ color: '#1E40AF' }}>CSV Format Required</p>
+                  <p className="text-xs mb-3" style={{ color: '#1D4ED8' }}>
+                    Columns: Question, Option A, Option B, Option C, Option D, Correct Answer (A/B/C/D), Marks
+                  </p>
+                  <button onClick={downloadTemplate} className="btn-primary" style={{ padding: '8px 16px', fontSize: '13px' }}>
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                    </svg>
+                    Download Template
+                  </button>
                 </div>
               </div>
 
-              {/* Upload Area */}
+              {/* Drop zone */}
               <div
                 onClick={() => fileInputRef.current?.click()}
-                className="border-2 border-dashed border-gray-300 rounded-xl p-12 text-center hover:border-[#1F3A68] hover:bg-gray-50 transition-all cursor-pointer"
+                onDragOver={e => { e.preventDefault(); setDragOver(true); }}
+                onDragLeave={() => setDragOver(false)}
+                onDrop={handleDrop}
+                className="flex flex-col items-center justify-center py-16 rounded-2xl cursor-pointer transition-all"
+                style={{
+                  border: `2px dashed ${dragOver ? '#0F2D52' : '#D1D5DB'}`,
+                  background: dragOver ? '#EAF2FB' : '#F8FAFC',
+                }}
               >
-                <svg className="w-16 h-16 mx-auto text-gray-400 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
-                </svg>
-                <h4 className="text-lg font-semibold text-gray-900 mb-2">Click to upload or drag and drop</h4>
-                <p className="text-sm text-gray-600">CSV files only</p>
-                <input
-                  ref={fileInputRef}
-                  type="file"
-                  accept=".csv"
-                  onChange={handleFileUpload}
-                  className="hidden"
-                />
+                <div className="w-16 h-16 rounded-2xl flex items-center justify-center mb-4"
+                  style={{ background: dragOver ? '#0F2D52' : '#EAF2FB' }}>
+                  <svg className="w-8 h-8" style={{ color: dragOver ? '#fff' : '#0F2D52' }} fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+                  </svg>
+                </div>
+                <p className="text-base font-semibold mb-1" style={{ color: '#0F2D52' }}>
+                  Click to upload or drag & drop
+                </p>
+                <p className="text-sm" style={{ color: '#9CA3AF' }}>CSV files only</p>
+                <input ref={fileInputRef} type="file" accept=".csv" onChange={handleFileInput} className="hidden" />
               </div>
 
               {error && (
-                <div className="bg-red-50 border-2 border-red-200 rounded-lg p-4">
-                  <div className="flex items-start">
-                    <svg className="w-5 h-5 text-red-600 mt-0.5 mr-3 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                      <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
-                    </svg>
-                    <span className="text-sm font-medium text-red-800">{error}</span>
-                  </div>
+                <div className="flex items-center gap-3 p-4 rounded-xl text-sm"
+                  style={{ background: '#FEE2E2', border: '1px solid #FCA5A5', color: '#991B1B' }}>
+                  <svg className="w-4 h-4 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+                  </svg>
+                  {error}
                 </div>
               )}
             </div>
@@ -251,56 +179,56 @@ export default function BulkQuestionUpload({ examId, onUploadComplete, onClose }
 
           {step === 'preview' && (
             <div className="space-y-4">
-              {/* Validation Errors */}
               {validationErrors.length > 0 && (
-                <div className="bg-red-50 border-2 border-red-200 rounded-lg p-4 mb-4">
-                  <h4 className="text-sm font-semibold text-red-900 mb-2">Validation Errors:</h4>
-                  <div className="space-y-2">
-                    {validationErrors.map((err) => (
-                      <div key={err.row} className="text-sm text-red-800">
-                        <span className="font-semibold">Row {err.row}:</span> {err.errors.join(', ')}
-                      </div>
-                    ))}
-                  </div>
+                <div className="p-4 rounded-xl" style={{ background: '#FEE2E2', border: '1px solid #FCA5A5' }}>
+                  <p className="text-sm font-semibold mb-2" style={{ color: '#991B1B' }}>Validation Errors</p>
+                  {validationErrors.map(e => (
+                    <p key={e.row} className="text-xs" style={{ color: '#DC2626' }}>
+                      <strong>Row {e.row}:</strong> {e.errors.join(', ')}
+                    </p>
+                  ))}
                 </div>
               )}
 
-              {/* Questions Table */}
-              <div className="bg-white border border-gray-200 rounded-lg overflow-hidden">
+              <div className="table-container">
                 <div className="overflow-x-auto">
-                  <table className="w-full text-sm">
-                    <thead className="bg-gray-50 border-b border-gray-200">
+                  <table className="w-full">
+                    <thead className="table-header">
                       <tr>
-                        <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase">#</th>
-                        <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase">Question</th>
-                        <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase">Options</th>
-                        <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase">Answer</th>
-                        <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase">Marks</th>
-                        <th className="px-4 py-3 text-right text-xs font-semibold text-gray-700 uppercase">Actions</th>
+                        <th>#</th>
+                        <th>Question</th>
+                        <th>Options</th>
+                        <th>Answer</th>
+                        <th>Marks</th>
+                        <th style={{ textAlign: 'right' }}>Action</th>
                       </tr>
                     </thead>
-                    <tbody className="divide-y divide-gray-200">
-                      {questions.map((q, index) => (
-                        <tr key={index} className="hover:bg-gray-50">
-                          <td className="px-4 py-3 text-gray-600">{index + 1}</td>
-                          <td className="px-4 py-3 text-gray-900 max-w-xs truncate">{q.question}</td>
-                          <td className="px-4 py-3 text-gray-600 text-xs">
-                            A: {q.optionA}<br />
-                            B: {q.optionB}<br />
-                            C: {q.optionC}<br />
-                            D: {q.optionD}
+                    <tbody>
+                      {questions.map((q, i) => (
+                        <tr key={i} className="table-row">
+                          <td className="table-cell">
+                            <span className="badge badge-navy">{i + 1}</span>
                           </td>
-                          <td className="px-4 py-3">
-                            <span className="inline-flex items-center px-2 py-1 rounded bg-green-100 text-green-800 text-xs font-semibold">
-                              {q.correctAnswer}
-                            </span>
+                          <td className="table-cell" style={{ maxWidth: '240px' }}>
+                            <p className="text-sm truncate" style={{ color: '#111827' }}>{q.question}</p>
                           </td>
-                          <td className="px-4 py-3 text-gray-600">{q.marks || 1}</td>
-                          <td className="px-4 py-3 text-right">
-                            <button
-                              onClick={() => removeQuestion(index)}
-                              className="text-red-600 hover:text-red-800 text-xs font-medium"
-                            >
+                          <td className="table-cell">
+                            <div className="text-xs space-y-0.5" style={{ color: '#6B7280' }}>
+                              <div>A: {q.optionA}</div>
+                              <div>B: {q.optionB}</div>
+                              <div>C: {q.optionC}</div>
+                              <div>D: {q.optionD}</div>
+                            </div>
+                          </td>
+                          <td className="table-cell">
+                            <span className="badge badge-success">{q.correctAnswer}</span>
+                          </td>
+                          <td className="table-cell">
+                            <span className="text-sm" style={{ color: '#374151' }}>{q.marks ?? 1}</span>
+                          </td>
+                          <td className="table-cell" style={{ textAlign: 'right' }}>
+                            <button onClick={() => setQuestions(questions.filter((_, j) => j !== i))}
+                              className="btn-danger" style={{ padding: '6px 12px', fontSize: '12px' }}>
                               Remove
                             </button>
                           </td>
@@ -312,57 +240,54 @@ export default function BulkQuestionUpload({ examId, onUploadComplete, onClose }
               </div>
 
               {error && (
-                <div className="bg-red-50 border-2 border-red-200 rounded-lg p-4">
-                  <div className="flex items-start">
-                    <svg className="w-5 h-5 text-red-600 mt-0.5 mr-3 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                      <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
-                    </svg>
-                    <span className="text-sm font-medium text-red-800">{error}</span>
-                  </div>
+                <div className="flex items-center gap-3 p-4 rounded-xl text-sm"
+                  style={{ background: '#FEE2E2', border: '1px solid #FCA5A5', color: '#991B1B' }}>
+                  <svg className="w-4 h-4 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+                  </svg>
+                  {error}
                 </div>
               )}
             </div>
           )}
 
           {step === 'success' && (
-            <div className="text-center py-12">
-              <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                <svg className="w-8 h-8 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+            <div className="flex flex-col items-center justify-center py-16">
+              <div className="w-20 h-20 rounded-full flex items-center justify-center mb-5"
+                style={{ background: '#DCFCE7' }}>
+                <svg className="w-10 h-10" style={{ color: '#16A34A' }} fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
                 </svg>
               </div>
-              <h3 className="text-xl font-bold text-gray-900 mb-2">Upload Successful!</h3>
-              <p className="text-gray-600">{questions.length} questions have been added to the exam.</p>
+              <h3 className="text-xl font-bold mb-2" style={{ color: '#0F2D52' }}>Upload Successful!</h3>
+              <p className="text-sm" style={{ color: '#6B7280' }}>
+                {questions.length} question{questions.length !== 1 ? 's' : ''} added to the exam.
+              </p>
             </div>
           )}
         </div>
 
         {/* Footer */}
         {step !== 'success' && (
-          <div className="px-6 py-4 border-t border-gray-200 flex gap-3 justify-end flex-shrink-0">
+          <div className="px-7 py-5 flex gap-3 justify-end flex-shrink-0"
+            style={{ borderTop: '1px solid #EEF2F7' }}>
             {step === 'preview' && (
-              <button
-                onClick={() => setStep('upload')}
-                disabled={loading}
-                className="px-4 py-2 border-2 border-gray-300 text-gray-700 text-sm font-semibold rounded-lg hover:bg-gray-50 transition-colors disabled:opacity-50"
-              >
+              <button onClick={() => setStep('upload')} disabled={loading} className="btn-ghost">
                 Back
               </button>
             )}
-            <button
-              onClick={onClose}
-              disabled={loading}
-              className="px-4 py-2 border-2 border-gray-300 text-gray-700 text-sm font-semibold rounded-lg hover:bg-gray-50 transition-colors disabled:opacity-50"
-            >
-              Cancel
-            </button>
+            <button onClick={onClose} disabled={loading} className="btn-ghost">Cancel</button>
             {step === 'preview' && (
-              <button
-                onClick={handleUpload}
-                disabled={loading || questions.length === 0}
-                className="px-6 py-2 bg-[#1F3A68] hover:bg-[#2A4A7C] text-white text-sm font-semibold rounded-lg transition-colors disabled:opacity-50 shadow-sm"
-              >
-                {loading ? 'Uploading...' : `Upload ${questions.length} Question(s)`}
+              <button onClick={handleUpload} disabled={loading || questions.length === 0} className="btn-primary">
+                {loading ? (
+                  <>
+                    <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                    </svg>
+                    Uploading…
+                  </>
+                ) : `Upload ${questions.length} Question${questions.length !== 1 ? 's' : ''}`}
               </button>
             )}
           </div>

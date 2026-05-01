@@ -78,7 +78,20 @@ export async function GET(
       );
     }
 
-    return NextResponse.json({ exam });
+    // Parse options field for each question
+    const processedExam = {
+      ...exam,
+      questions: exam.questions.map(question => ({
+        ...question,
+        options: question.options ? 
+          (typeof question.options === 'string' ? 
+            JSON.parse(question.options) : 
+            question.options
+          ) : [],
+      })),
+    };
+
+    return NextResponse.json({ exam: processedExam });
   } catch (error) {
     console.error('Error fetching exam:', error);
     return NextResponse.json(

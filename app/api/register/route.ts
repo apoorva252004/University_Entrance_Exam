@@ -4,6 +4,7 @@ import bcrypt from "bcrypt";
 import { generateUsername } from "@/lib/utils/username";
 import { generateSecurePassword } from "@/lib/utils/password";
 import { isValidEmail, isValidPhone } from "@/lib/utils/validation";
+import { logAuditEvent } from "@/lib/utils/audit-log";
 
 /**
  * Student Registration API Route
@@ -146,12 +147,21 @@ export async function POST(request: NextRequest) {
       },
     });
 
+    // Log account creation
+    logAuditEvent({
+      eventType: 'ACCOUNT_CREATED',
+      userId: user.id,
+      username: username,
+      success: true,
+      details: { role: 'STUDENT', email: user.email },
+    });
+
     // Return success response with userId, username, and plain-text password
     // Password is only returned once - user must save it
     return NextResponse.json(
       {
         success: true,
-        message: "Registration successful. Please wait for admin approval.",
+        message: "Registration successful! Please save your credentials.",
         userId: user.id,
         username: username,
         password: plainPassword, // Plain text password (only returned once)

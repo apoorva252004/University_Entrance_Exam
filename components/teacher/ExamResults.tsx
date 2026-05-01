@@ -4,56 +4,32 @@ import { useEffect, useState } from 'react';
 
 interface StudentAttempt {
   id: string;
-  student: {
-    name: string;
-    email: string;
-  };
+  student: { name: string; email: string };
   submittedAt: string | null;
   score: number | null;
   totalMarks: number;
 }
 
 interface ExamResultsData {
-  exam: {
-    title: string;
-    totalMarks: number;
-    duration: number;
-    mode: string;
-    status: string;
-  };
+  exam: { title: string; totalMarks: number; duration: number; mode: string; status: string };
   attempts: StudentAttempt[];
-  stats: {
-    totalAttempts: number;
-    averageScore: number;
-    highestScore: number;
-    lowestScore: number;
-  };
+  stats: { totalAttempts: number; averageScore: number; highestScore: number; lowestScore: number };
 }
 
-interface ExamResultsProps {
-  examId: string;
-  onError: (message: string) => void;
-}
+interface Props { examId: string; onError: (message: string) => void; }
 
-export default function ExamResults({ examId, onError }: ExamResultsProps) {
+export default function ExamResults({ examId, onError }: Props) {
   const [data, setData] = useState<ExamResultsData | null>(null);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    fetchResults();
-  }, [examId]);
+  useEffect(() => { fetchResults(); }, [examId]);
 
   const fetchResults = async () => {
     try {
       setLoading(true);
-      const response = await fetch(`/api/teacher/exams/${examId}/results`);
-
-      if (!response.ok) {
-        throw new Error('Failed to fetch exam results');
-      }
-
-      const resultData = await response.json();
-      setData(resultData);
+      const res = await fetch(`/api/teacher/exams/${examId}/results`);
+      if (!res.ok) throw new Error('Failed to fetch exam results');
+      setData(await res.json());
     } catch (err) {
       onError(err instanceof Error ? err.message : 'Failed to load results');
     } finally {
@@ -61,136 +37,145 @@ export default function ExamResults({ examId, onError }: ExamResultsProps) {
     }
   };
 
-  const formatDate = (dateString: string | null) => {
-    if (!dateString) return 'Not submitted';
-    return new Date(dateString).toLocaleString('en-US', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
-    });
+  const fmtDate = (d: string | null) => {
+    if (!d) return 'Not submitted';
+    return new Date(d).toLocaleString('en-US', { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
   };
 
-  const getScoreColor = (score: number, total: number) => {
-    const percentage = (score / total) * 100;
-    if (percentage >= 80) return '#0F6E56';
-    if (percentage >= 60) return '#BA7517';
-    return '#B91C1C';
+  const scoreStyle = (score: number, total: number) => {
+    const pct = (score / total) * 100;
+    if (pct >= 80) return { badge: 'badge-success', color: '#14532D' };
+    if (pct >= 60) return { badge: 'badge-warning', color: '#92400E' };
+    return { badge: 'badge-error', color: '#991B1B' };
   };
 
   if (loading) {
     return (
-      <div className="text-center py-12 bg-white rounded-xl" style={{ border: '1px solid #e0dfd8' }}>
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 mx-auto" style={{ borderColor: '#533490' }}></div>
-        <p className="mt-3 text-sm" style={{ color: '#6b6b67' }}>Loading results...</p>
+      <div className="table-container flex flex-col items-center justify-center py-20">
+        <div className="w-8 h-8 rounded-full border-2 border-t-transparent animate-spin"
+          style={{ borderColor: '#0F2D52', borderTopColor: 'transparent' }} />
+        <p className="mt-3 text-sm" style={{ color: '#6B7280' }}>Loading results…</p>
       </div>
     );
   }
 
   if (!data) {
     return (
-      <div className="text-center py-12 bg-white rounded-xl" style={{ border: '1px solid #e0dfd8' }}>
-        <p className="text-sm" style={{ color: '#6b6b67' }}>No data available</p>
+      <div className="table-container flex flex-col items-center justify-center py-20">
+        <p className="text-sm" style={{ color: '#6B7280' }}>No data available</p>
       </div>
     );
   }
 
   return (
-    <div className="space-y-4">
-      {/* Exam Info Card */}
-      <div className="bg-white rounded-xl p-5" style={{ border: '1px solid #e0dfd8' }}>
-        <h3 className="text-sm font-medium mb-3" style={{ color: '#1a1a18' }}>{data.exam.title}</h3>
-        <div className="flex items-center gap-6 text-xs" style={{ color: '#6b6b67' }}>
-          <div className="flex items-center gap-2">
-            <svg className="w-4 h-4" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.2">
-              <path d="M8 2l2 4 4 1-3 3 1 4-4-2-4 2 1-4-3-3 4-1z" strokeLinecap="round" strokeLinejoin="round"/>
-            </svg>
-            {data.exam.totalMarks} Marks
-          </div>
-          <div className="flex items-center gap-2">
-            <svg className="w-4 h-4" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.2">
-              <circle cx="8" cy="8" r="6"/>
-              <path d="M8 4v4l3 2" strokeLinecap="round"/>
-            </svg>
-            {data.exam.duration} Minutes
-          </div>
-          <div className="px-2 py-1 rounded-full text-xs" style={data.exam.mode === 'ONLINE' ? { background: '#EEEDFE', color: '#533490' } : { background: '#f4f4f0', color: '#6b6b67' }}>
-            {data.exam.mode}
-          </div>
-          <div className="px-2 py-1 rounded-full text-xs" style={{ background: '#E1F5EE', color: '#0F6E56' }}>
-            {data.exam.status}
+    <div className="space-y-6">
+      {/* Exam info banner */}
+      <div className="bg-white rounded-2xl px-6 py-5 flex items-center justify-between flex-wrap gap-4"
+        style={{ border: '1px solid #EEF2F7', boxShadow: '0 10px 25px rgba(0,0,0,0.06)' }}>
+        <div>
+          <h3 className="font-semibold text-base" style={{ color: '#0F2D52' }}>{data.exam.title}</h3>
+          <div className="flex items-center gap-4 mt-2 flex-wrap">
+            {[
+              { icon: '⭐', text: `${data.exam.totalMarks} marks` },
+              { icon: '⏱', text: `${data.exam.duration} min` },
+            ].map(({ icon, text }) => (
+              <span key={text} className="text-sm" style={{ color: '#6B7280' }}>{icon} {text}</span>
+            ))}
+            <span className={`badge ${data.exam.mode === 'ONLINE' ? 'badge-info' : 'badge-navy'}`}>
+              {data.exam.mode}
+            </span>
+            <span className="badge badge-success">{data.exam.status}</span>
           </div>
         </div>
       </div>
 
-      {/* Statistics Cards */}
-      <div className="grid grid-cols-4 gap-4">
-        <div className="bg-white rounded-xl p-4" style={{ border: '1px solid #e0dfd8' }}>
-          <div className="text-xs font-medium uppercase tracking-wider mb-2" style={{ color: '#9b9b96' }}>Total Attempts</div>
-          <div className="text-2xl font-semibold" style={{ color: '#1a1a18' }}>{data.stats.totalAttempts}</div>
-        </div>
-        <div className="bg-white rounded-xl p-4" style={{ border: '1px solid #e0dfd8' }}>
-          <div className="text-xs font-medium uppercase tracking-wider mb-2" style={{ color: '#9b9b96' }}>Average Score</div>
-          <div className="text-2xl font-semibold" style={{ color: '#1a1a18' }}>
-            {data.stats.averageScore.toFixed(1)}
-            <span className="text-sm font-normal" style={{ color: '#6b6b67' }}> / {data.exam.totalMarks}</span>
+      {/* Stats row */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+        {[
+          { label: 'Total Attempts', value: data.stats.totalAttempts, accent: '#0F2D52', bg: '#EAF2FB' },
+          { label: 'Average Score', value: `${data.stats.averageScore.toFixed(1)} / ${data.exam.totalMarks}`, accent: '#C79A2B', bg: '#FDF6E3' },
+          { label: 'Highest Score', value: `${data.stats.highestScore} / ${data.exam.totalMarks}`, accent: '#16A34A', bg: '#DCFCE7' },
+          { label: 'Lowest Score', value: `${data.stats.lowestScore} / ${data.exam.totalMarks}`, accent: '#DC2626', bg: '#FEE2E2' },
+        ].map(({ label, value, accent, bg }) => (
+          <div key={label} className="bg-white rounded-2xl p-5"
+            style={{ border: '1px solid #EEF2F7', borderTop: `4px solid ${accent}`, boxShadow: '0 10px 25px rgba(0,0,0,0.06)' }}>
+            <p className="text-xs font-semibold uppercase tracking-wider mb-2" style={{ color: '#9CA3AF' }}>{label}</p>
+            <p className="text-xl font-bold" style={{ color: accent }}>{value}</p>
           </div>
-        </div>
-        <div className="bg-white rounded-xl p-4" style={{ border: '1px solid #e0dfd8' }}>
-          <div className="text-xs font-medium uppercase tracking-wider mb-2" style={{ color: '#9b9b96' }}>Highest Score</div>
-          <div className="text-2xl font-semibold" style={{ color: '#0F6E56' }}>
-            {data.stats.highestScore}
-            <span className="text-sm font-normal" style={{ color: '#6b6b67' }}> / {data.exam.totalMarks}</span>
-          </div>
-        </div>
-        <div className="bg-white rounded-xl p-4" style={{ border: '1px solid #e0dfd8' }}>
-          <div className="text-xs font-medium uppercase tracking-wider mb-2" style={{ color: '#9b9b96' }}>Lowest Score</div>
-          <div className="text-2xl font-semibold" style={{ color: '#B91C1C' }}>
-            {data.stats.lowestScore}
-            <span className="text-sm font-normal" style={{ color: '#6b6b67' }}> / {data.exam.totalMarks}</span>
-          </div>
-        </div>
+        ))}
       </div>
 
-      {/* Student Attempts Table */}
-      <div>
-        <div className="text-xs font-medium uppercase tracking-wider mb-3" style={{ color: '#9b9b96' }}>
-          Student Attempts ({data.attempts.length})
-        </div>
-        {data.attempts.length === 0 ? (
-          <div className="text-center py-12 bg-white rounded-xl" style={{ border: '1px solid #e0dfd8' }}>
-            <p className="text-sm" style={{ color: '#6b6b67' }}>No students have attempted this exam yet</p>
+      {/* Attempts table */}
+      {data.attempts.length === 0 ? (
+        <div className="table-container flex flex-col items-center justify-center py-20">
+          <div className="w-16 h-16 rounded-2xl flex items-center justify-center mb-4" style={{ background: '#EAF2FB' }}>
+            <svg className="w-8 h-8" style={{ color: '#0F2D52' }} fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+            </svg>
           </div>
-        ) : (
-          <div className="bg-white rounded-xl overflow-hidden" style={{ border: '1px solid #e0dfd8' }}>
+          <h3 className="text-base font-semibold mb-1" style={{ color: '#0F2D52' }}>No attempts yet</h3>
+          <p className="text-sm" style={{ color: '#6B7280' }}>Students haven't attempted this exam yet</p>
+        </div>
+      ) : (
+        <div className="table-container">
+          <div className="px-6 py-4 flex items-center justify-between" style={{ borderBottom: '1px solid #EEF2F7' }}>
+            <div>
+              <h3 className="font-semibold" style={{ color: '#0F2D52' }}>Student Attempts</h3>
+              <p className="text-xs mt-0.5" style={{ color: '#6B7280' }}>{data.attempts.length} submission{data.attempts.length !== 1 ? 's' : ''}</p>
+            </div>
+            <span className="badge badge-navy">{data.attempts.length} Total</span>
+          </div>
+
+          <div className="overflow-x-auto">
             <table className="w-full">
-              <thead>
-                <tr style={{ borderBottom: '1px solid #e0dfd8', background: '#f4f4f0' }}>
-                  <th className="text-left px-4 py-3 text-xs font-medium" style={{ color: '#6b6b67' }}>Student Name</th>
-                  <th className="text-left px-4 py-3 text-xs font-medium" style={{ color: '#6b6b67' }}>Email</th>
-                  <th className="text-left px-4 py-3 text-xs font-medium" style={{ color: '#6b6b67' }}>Submitted At</th>
-                  <th className="text-right px-4 py-3 text-xs font-medium" style={{ color: '#6b6b67' }}>Score</th>
-                  <th className="text-right px-4 py-3 text-xs font-medium" style={{ color: '#6b6b67' }}>Percentage</th>
+              <thead className="table-header">
+                <tr>
+                  <th>Student</th>
+                  <th>Email</th>
+                  <th>Submitted</th>
+                  <th style={{ textAlign: 'right' }}>Score</th>
+                  <th style={{ textAlign: 'right' }}>Percentage</th>
                 </tr>
               </thead>
               <tbody>
                 {data.attempts.map((attempt) => {
-                  const percentage = attempt.score !== null ? ((attempt.score / attempt.totalMarks) * 100).toFixed(1) : 'N/A';
+                  const pct = attempt.score !== null
+                    ? ((attempt.score / attempt.totalMarks) * 100).toFixed(1)
+                    : null;
+                  const style = attempt.score !== null ? scoreStyle(attempt.score, attempt.totalMarks) : null;
+
                   return (
-                    <tr key={attempt.id} style={{ borderBottom: '1px solid #e0dfd8' }}>
-                      <td className="px-4 py-3 text-sm" style={{ color: '#1a1a18' }}>{attempt.student.name}</td>
-                      <td className="px-4 py-3 text-xs" style={{ color: '#6b6b67' }}>{attempt.student.email}</td>
-                      <td className="px-4 py-3 text-xs" style={{ color: '#6b6b67' }}>{formatDate(attempt.submittedAt)}</td>
-                      <td className="px-4 py-3 text-right">
-                        <span className="text-sm font-medium" style={{ color: attempt.score !== null ? getScoreColor(attempt.score, attempt.totalMarks) : '#6b6b67' }}>
-                          {attempt.score !== null ? attempt.score : 'Pending'} / {attempt.totalMarks}
-                        </span>
+                    <tr key={attempt.id} className="table-row">
+                      <td className="table-cell">
+                        <div className="flex items-center gap-3">
+                          <div className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0"
+                            style={{ background: '#EAF2FB', color: '#0F2D52' }}>
+                            {attempt.student.name.charAt(0).toUpperCase()}
+                          </div>
+                          <span className="font-semibold text-sm" style={{ color: '#0F2D52' }}>{attempt.student.name}</span>
+                        </div>
                       </td>
-                      <td className="px-4 py-3 text-right">
-                        <span className="text-sm font-medium" style={{ color: attempt.score !== null ? getScoreColor(attempt.score, attempt.totalMarks) : '#6b6b67' }}>
-                          {percentage !== 'N/A' ? `${percentage}%` : 'Pending'}
-                        </span>
+                      <td className="table-cell">
+                        <span className="text-sm" style={{ color: '#6B7280' }}>{attempt.student.email}</span>
+                      </td>
+                      <td className="table-cell">
+                        <span className="text-sm" style={{ color: '#6B7280' }}>{fmtDate(attempt.submittedAt)}</span>
+                      </td>
+                      <td className="table-cell" style={{ textAlign: 'right' }}>
+                        {attempt.score !== null ? (
+                          <span className={`badge ${style!.badge}`}>
+                            {attempt.score} / {attempt.totalMarks}
+                          </span>
+                        ) : (
+                          <span className="badge badge-warning">Pending</span>
+                        )}
+                      </td>
+                      <td className="table-cell" style={{ textAlign: 'right' }}>
+                        {pct !== null ? (
+                          <span className="text-sm font-semibold" style={{ color: style!.color }}>{pct}%</span>
+                        ) : (
+                          <span className="text-sm" style={{ color: '#9CA3AF' }}>—</span>
+                        )}
                       </td>
                     </tr>
                   );
@@ -198,8 +183,8 @@ export default function ExamResults({ examId, onError }: ExamResultsProps) {
               </tbody>
             </table>
           </div>
-        )}
-      </div>
+        </div>
+      )}
     </div>
   );
 }

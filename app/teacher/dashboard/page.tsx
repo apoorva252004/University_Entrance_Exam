@@ -3,56 +3,40 @@
 import { useEffect, useState } from 'react';
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
+import TeacherSidebar, { TeacherTab } from '@/components/teacher/TeacherSidebar';
+import TeacherTopBar from '@/components/teacher/TeacherTopBar';
+import TeacherKpiCards from '@/components/teacher/TeacherKpiCards';
+import TeacherOverview from '@/components/teacher/TeacherOverview';
 import StudentListTable from '@/components/teacher/StudentListTable';
 import ExamListTable from '@/components/teacher/ExamListTable';
 import CreateExamForm from '@/components/teacher/CreateExamForm';
 import QuestionManager from '@/components/teacher/QuestionManager';
 import ExamResults from '@/components/teacher/ExamResults';
 
-interface Student {
-  id: string;
-  name: string;
-  email: string;
-  programForSchool: string;
-  status: string;
-}
-
-interface TeacherStudentsResponse {
-  students: Student[];
-  assignedSchool: string;
-}
-
+interface Student { id: string; name: string; email: string; programForSchool: string; status: string; }
+interface TeacherStudentsResponse { students: Student[]; assignedSchool: string; }
 interface Exam {
-  id: string;
-  title: string;
-  description: string | null;
-  examDate: string;
-  duration: number;
-  totalMarks: number;
-  status: string;
-  mode: string;
-  venue: string | null;
-  program: {
-    id: string;
-    name: string;
-  };
-  createdBy: {
-    name: string;
-    email: string;
-  };
+  id: string; title: string; description: string | null; examDate: string;
+  duration: number; totalMarks: number; status: string; mode: string; venue: string | null;
+  program: { id: string; name: string };
+  createdBy: { name: string; email: string };
+  questions?: { id: string }[];
 }
+interface Program { id: string; name: string; }
 
-interface Program {
-  id: string;
-  name: string;
-}
-
-type TabType = 'students' | 'exams' | 'create-exam' | 'manage-questions' | 'exam-results';
+const PAGE_META: Record<string, { title: string; subtitle: string }> = {
+  overview:           { title: 'Overview',          subtitle: 'Your teaching workspace at a glance' },
+  exams:              { title: 'My Exams',           subtitle: 'Manage and monitor all your examinations' },
+  'create-exam':      { title: 'Create Exam',        subtitle: 'Set up a new examination for your students' },
+  students:           { title: 'Students',           subtitle: 'View students enrolled in your school' },
+  'manage-questions': { title: 'Manage Questions',   subtitle: 'Add, edit, and organise exam questions' },
+  'exam-results':     { title: 'Exam Results',       subtitle: 'View student performance and analytics' },
+};
 
 export default function TeacherDashboard() {
   const { data: session, status } = useSession();
   const router = useRouter();
-  const [activeTab, setActiveTab] = useState<TabType>('students');
+  const [activeTab, setActiveTab] = useState<TeacherTab>('overview');
   const [studentsData, setStudentsData] = useState<TeacherStudentsResponse | null>(null);
   const [exams, setExams] = useState<Exam[]>([]);
   const [programs, setPrograms] = useState<Program[]>([]);
@@ -62,18 +46,10 @@ export default function TeacherDashboard() {
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
 
   useEffect(() => {
-    if (status === 'unauthenticated') {
-      router.push('/login');
-    } else if (status === 'authenticated') {
-      // Check if first login - redirect to change password
-      if (session?.user?.isFirstLogin) {
-        router.push('/change-password');
-        return;
-      }
-      
-      if (session?.user?.role !== 'TEACHER') {
-        router.push('/');
-      }
+    if (status === 'unauthenticated') { router.push('/login'); return; }
+    if (status === 'authenticated') {
+      if (session?.user?.isFirstLogin) { router.push('/change-password'); return; }
+      if (session?.user?.role !== 'TEACHER') { router.push('/'); }
     }
   }, [status, session, router]);
 
@@ -85,20 +61,15 @@ export default function TeacherDashboard() {
 
   const showToast = (message: string, type: 'success' | 'error') => {
     setToast({ message, type });
-    setTimeout(() => setToast(null), 3000);
+    setTimeout(() => setToast(null), 3500);
   };
 
   const fetchStudents = async () => {
     try {
       setLoading(true);
-      const response = await fetch('/api/teacher/students');
-      
-      if (!response.ok) {
-        throw new Error('Failed to fetch students');
-      }
-
-      const responseData = await response.json();
-      setStudentsData(responseData);
+      const res = await fetch('/api/teacher/students');
+      if (!res.ok) throw new Error('Failed to fetch students');
+      setStudentsData(await res.json());
       setError(null);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'An error occurred');
@@ -109,32 +80,20 @@ export default function TeacherDashboard() {
 
   const fetchExams = async () => {
     try {
-      const response = await fetch('/api/teacher/exams');
-      
-      if (!response.ok) {
-        throw new Error('Failed to fetch exams');
-      }
-
-      const data = await response.json();
+      const res = await fetch('/api/teacher/exams');
+      if (!res.ok) throw new Error('Failed to fetch exams');
+      const data = await res.json();
       setExams(data.exams);
-    } catch (err) {
-      console.error('Error fetching exams:', err);
-    }
+    } catch (err) { console.error(err); }
   };
 
   const fetchPrograms = async () => {
     try {
-      const response = await fetch('/api/teacher/programs');
-      
-      if (!response.ok) {
-        throw new Error('Failed to fetch programs');
-      }
-
-      const data = await response.json();
+      const res = await fetch('/api/teacher/programs');
+      if (!res.ok) throw new Error('Failed to fetch programs');
+      const data = await res.json();
       setPrograms(data.programs);
-    } catch (err) {
-      console.error('Error fetching programs:', err);
-    }
+    } catch (err) { console.error(err); }
   };
 
   const handleExamCreated = () => {
@@ -154,316 +113,225 @@ export default function TeacherDashboard() {
   };
 
   const handlePublishExam = async (examId: string) => {
-    if (!confirm('Are you sure you want to publish this exam? Students will be able to attempt it.')) {
-      return;
-    }
-
+    if (!confirm('Publish this exam? Students will be able to attempt it.')) return;
     try {
-      const response = await fetch(`/api/teacher/exams/${examId}/publish`, {
-        method: 'PATCH',
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to publish exam');
-      }
-
+      const res = await fetch(`/api/teacher/exams/${examId}/publish`, { method: 'PATCH' });
+      if (!res.ok) throw new Error('Failed to publish exam');
       showToast('Exam published successfully!', 'success');
       fetchExams();
-    } catch (err) {
-      showToast(err instanceof Error ? err.message : 'Failed to publish exam', 'error');
-    }
+    } catch (err) { showToast(err instanceof Error ? err.message : 'Failed to publish exam', 'error'); }
   };
 
   const handleStopExam = async (examId: string) => {
-    if (!confirm('Are you sure you want to stop this exam? Students will no longer be able to attempt it.')) {
-      return;
-    }
-
+    if (!confirm('Stop this exam? Students will no longer be able to attempt it.')) return;
     try {
-      const response = await fetch(`/api/teacher/exams/${examId}/stop`, {
-        method: 'PATCH',
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to stop exam');
-      }
-
+      const res = await fetch(`/api/teacher/exams/${examId}/stop`, { method: 'PATCH' });
+      if (!res.ok) throw new Error('Failed to stop exam');
       showToast('Exam stopped successfully!', 'success');
       fetchExams();
-    } catch (err) {
-      showToast(err instanceof Error ? err.message : 'Failed to stop exam', 'error');
-    }
+    } catch (err) { showToast(err instanceof Error ? err.message : 'Failed to stop exam', 'error'); }
   };
 
   const handleDeleteExam = async (examId: string) => {
-    if (!confirm('Are you sure you want to delete this exam? This action cannot be undone and will delete all questions and student attempts.')) {
-      return;
-    }
-
+    if (!confirm('Delete this exam? This cannot be undone.')) return;
     try {
-      const response = await fetch(`/api/teacher/exams/${examId}`, {
-        method: 'DELETE',
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to delete exam');
-      }
-
+      const res = await fetch(`/api/teacher/exams/${examId}`, { method: 'DELETE' });
+      if (!res.ok) throw new Error('Failed to delete exam');
       showToast('Exam deleted successfully!', 'success');
       fetchExams();
-    } catch (err) {
-      showToast(err instanceof Error ? err.message : 'Failed to delete exam', 'error');
-    }
+    } catch (err) { showToast(err instanceof Error ? err.message : 'Failed to delete exam', 'error'); }
   };
 
   if (status === 'loading' || loading) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-red-600 mx-auto"></div>
-          <p className="mt-3 text-sm text-gray-600">Loading...</p>
+      <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#F8FAFC', fontFamily: "'Inter', -apple-system, sans-serif" }}>
+        <div style={{ textAlign: 'center' }}>
+          <div style={{ width: 40, height: 40, borderRadius: '50%', border: '3px solid #14B8A6', borderTopColor: 'transparent', animation: 'spin 700ms linear infinite', margin: '0 auto' }} />
+          <p style={{ marginTop: 12, fontSize: 14, color: '#6B7280' }}>Loading your workspace…</p>
         </div>
+        <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
       </div>
     );
   }
 
-  if (error) {
+  if (error || !studentsData) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center">
-          <p className="text-red-600 text-sm">{error}</p>
-          <button
-            onClick={fetchStudents}
-            className="mt-4 px-4 py-2 bg-red-600 text-white text-sm rounded-lg hover:bg-red-700 transition-colors"
-          >
-            Retry
-          </button>
+      <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#F8FAFC' }}>
+        <div style={{ textAlign: 'center' }}>
+          <p style={{ fontSize: 14, fontWeight: 600, color: '#DC2626', marginBottom: 16 }}>{error ?? 'Something went wrong'}</p>
+          <button onClick={fetchStudents} className="btn-primary">Retry</button>
         </div>
       </div>
     );
   }
 
-  if (!studentsData) {
-    return null;
-  }
+  const meta = PAGE_META[activeTab] ?? PAGE_META['overview'];
+  const totalQuestions = exams.reduce((sum, e) => sum + (e.questions?.length ?? 0), 0);
+  const pendingEvals = 0; // placeholder — could be computed from attempts without scores
 
   return (
-    <div className="h-screen grid overflow-hidden" style={{ gridTemplateColumns: '240px 1fr', background: 'var(--bg-main)' }}>
-      {/* Sidebar - Navy Background */}
-      <div className="sidebar flex flex-col h-screen overflow-hidden">
-        {/* Logo/Brand */}
-        <div className="p-6 flex-shrink-0" style={{ borderBottom: '1px solid rgba(255, 255, 255, 0.1)' }}>
-          <h2 className="text-lg font-bold" style={{ color: 'var(--text-on-dark)' }}>RV University</h2>
-          <p className="text-xs mt-1" style={{ color: 'rgba(255, 255, 255, 0.7)' }}>Teacher Portal</p>
-        </div>
+    <div style={{ display: 'flex', height: '100vh', overflow: 'hidden', background: '#F8FAFC', fontFamily: "'Inter', -apple-system, sans-serif" }}>
+      {/* Sidebar */}
+      <TeacherSidebar
+        userName={session?.user?.name ?? 'Teacher'}
+        assignedSchool={studentsData.assignedSchool}
+        activeTab={activeTab}
+        onTabChange={setActiveTab}
+        examCount={exams.length}
+        pendingEvals={pendingEvals}
+      />
 
-        {/* Profile Header */}
-        <div className="px-6 py-4 flex-shrink-0" style={{ borderBottom: '1px solid rgba(255, 255, 255, 0.1)' }}>
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-full flex items-center justify-center text-sm font-semibold" style={{ background: 'var(--gold-primary)', color: 'var(--navy-primary)' }}>
-              {session?.user?.name?.charAt(0).toUpperCase()}
+      {/* Main */}
+      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', minWidth: 0 }}>
+        {/* Top bar */}
+        <TeacherTopBar
+          userName={session?.user?.name ?? 'Teacher'}
+          assignedSchool={studentsData.assignedSchool}
+          actions={
+            activeTab === 'exams' ? (
+              <button
+                onClick={() => setActiveTab('create-exam')}
+                style={{ display: 'inline-flex', alignItems: 'center', gap: 7, padding: '9px 16px', borderRadius: 11, border: 'none', background: 'linear-gradient(135deg, #0F2D52, #173F73)', color: '#fff', fontSize: 13, fontWeight: 700, cursor: 'pointer', boxShadow: '0 4px 12px rgba(15,45,82,0.25)', transition: 'all 150ms ease', fontFamily: 'inherit' }}
+                onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.transform = 'translateY(-1px)'; (e.currentTarget as HTMLButtonElement).style.boxShadow = '0 8px 20px rgba(15,45,82,0.35)'; }}
+                onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.transform = 'translateY(0)'; (e.currentTarget as HTMLButtonElement).style.boxShadow = '0 4px 12px rgba(15,45,82,0.25)'; }}
+              >
+                <svg width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4"/>
+                </svg>
+                New Exam
+              </button>
+            ) : undefined
+          }
+        />
+
+        {/* Scrollable content */}
+        <div style={{ flex: 1, overflowY: 'auto', padding: '32px', paddingBottom: '48px' }}>
+          <div style={{ maxWidth: '1200px', margin: '0 auto' }}>
+
+            {/* Page header */}
+            <div style={{ marginBottom: 28 }}>
+              <h1 style={{ fontSize: 'clamp(1.3rem, 2.5vw, 1.75rem)', fontWeight: 800, color: '#0F2D52', letterSpacing: '-0.4px', lineHeight: 1.2, marginBottom: 5 }}>
+                {meta.title}
+              </h1>
+              <p style={{ fontSize: 14, color: '#6B7280' }}>{meta.subtitle}</p>
             </div>
-            <div>
-              <div className="text-sm font-semibold" style={{ color: 'var(--text-on-dark)' }}>{session?.user?.name}</div>
-              <div className="text-xs mt-0.5" style={{ color: 'rgba(255, 255, 255, 0.7)' }}>Teacher</div>
+
+            {/* KPI cards — always visible */}
+            <div style={{ marginBottom: 28 }}>
+              <TeacherKpiCards
+                examsCreated={exams.length}
+                questionsUploaded={totalQuestions}
+                studentsAssigned={studentsData.students.length}
+                pendingEvaluations={pendingEvals}
+              />
             </div>
-          </div>
-          <div className="text-xs mt-3 px-3 py-1.5 rounded-lg" style={{ background: 'rgba(255, 255, 255, 0.1)', color: 'var(--text-on-dark)' }}>
-            {studentsData?.assignedSchool}
-          </div>
-        </div>
 
-        {/* Navigation */}
-        <nav className="p-4 flex flex-col gap-2 flex-1 overflow-auto">
-          <a 
-            href="#" 
-            onClick={(e) => { e.preventDefault(); setActiveTab('students'); }}
-            className={`sidebar-item ${activeTab === 'students' ? 'sidebar-item-active' : ''}`}
-          >
-            <svg className="w-5 h-5" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.5">
-              <circle cx="10" cy="7" r="4"/>
-              <path d="M3 18c0-3.866 3.134-7 7-7s7 3.134 7 7" strokeLinecap="round"/>
-            </svg>
-            <span>Students</span>
-          </a>
-          <a 
-            href="#" 
-            onClick={(e) => { e.preventDefault(); setActiveTab('exams'); }}
-            className={`sidebar-item ${activeTab === 'exams' ? 'sidebar-item-active' : ''}`}
-          >
-            <svg className="w-5 h-5" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.5">
-              <rect x="3" y="4" width="14" height="12" rx="2"/>
-              <path d="M6 8h8M6 12h5" strokeLinecap="round"/>
-            </svg>
-            <span>Exams</span>
-          </a>
-          <a 
-            href="#" 
-            onClick={(e) => { e.preventDefault(); setActiveTab('create-exam'); }}
-            className={`sidebar-item ${activeTab === 'create-exam' ? 'sidebar-item-active' : ''}`}
-          >
-            <svg className="w-5 h-5" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.5">
-              <path d="M10 4v12M4 10h12" strokeLinecap="round"/>
-            </svg>
-            <span>Create Exam</span>
-          </a>
-        </nav>
+            {/* Tab content */}
+            {activeTab === 'overview' && (
+              <TeacherOverview
+                exams={exams}
+                studentsCount={studentsData.students.length}
+                onNavigate={(tab) => setActiveTab(tab as TeacherTab)}
+                onManageQuestions={handleManageQuestions}
+                onViewResults={handleViewResults}
+                onPublishExam={handlePublishExam}
+                onStopExam={handleStopExam}
+                onDeleteExam={handleDeleteExam}
+              />
+            )}
 
-        {/* Sign Out */}
-        <div className="p-4 flex-shrink-0" style={{ borderTop: '1px solid rgba(255, 255, 255, 0.1)' }}>
-          <button
-            onClick={() => router.push('/api/auth/signout')}
-            className="w-full sidebar-item justify-center"
-          >
-            <svg className="w-5 h-5" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.5">
-              <path d="M13 3h3a2 2 0 012 2v10a2 2 0 01-2 2h-3M7 16l-4-4m0 0l4-4m-4 4h12" strokeLinecap="round" strokeLinejoin="round"/>
-            </svg>
-            <span>Sign Out</span>
-          </button>
+            {activeTab === 'exams' && (
+              <ExamListTable
+                exams={exams}
+                onManageQuestions={handleManageQuestions}
+                onPublishExam={handlePublishExam}
+                onStopExam={handleStopExam}
+                onDeleteExam={handleDeleteExam}
+                onViewResults={handleViewResults}
+              />
+            )}
+
+            {activeTab === 'create-exam' && (
+              <CreateExamForm
+                programs={programs}
+                onSuccess={handleExamCreated}
+                onError={(msg) => showToast(msg, 'error')}
+              />
+            )}
+
+            {activeTab === 'students' && (
+              <StudentListTable
+                students={studentsData.students}
+                assignedSchool={studentsData.assignedSchool}
+              />
+            )}
+
+            {activeTab === 'manage-questions' && selectedExamId && (
+              <div>
+                <button
+                  onClick={() => setActiveTab('exams')}
+                  style={{ display: 'inline-flex', alignItems: 'center', gap: 7, padding: '9px 16px', borderRadius: 11, border: '1.5px solid #E5E7EB', background: '#fff', color: '#374151', fontSize: 13, fontWeight: 600, cursor: 'pointer', marginBottom: 24, fontFamily: 'inherit', transition: 'all 150ms ease' }}
+                  onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.borderColor = '#0F2D52'; (e.currentTarget as HTMLButtonElement).style.color = '#0F2D52'; }}
+                  onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.borderColor = '#E5E7EB'; (e.currentTarget as HTMLButtonElement).style.color = '#374151'; }}
+                >
+                  <svg width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7"/>
+                  </svg>
+                  Back to Exams
+                </button>
+                <QuestionManager
+                  examId={selectedExamId}
+                  onSuccess={(msg) => showToast(msg, 'success')}
+                  onError={(msg) => showToast(msg, 'error')}
+                />
+              </div>
+            )}
+
+            {activeTab === 'exam-results' && selectedExamId && (
+              <div>
+                <button
+                  onClick={() => setActiveTab('exams')}
+                  style={{ display: 'inline-flex', alignItems: 'center', gap: 7, padding: '9px 16px', borderRadius: 11, border: '1.5px solid #E5E7EB', background: '#fff', color: '#374151', fontSize: 13, fontWeight: 600, cursor: 'pointer', marginBottom: 24, fontFamily: 'inherit', transition: 'all 150ms ease' }}
+                  onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.borderColor = '#0F2D52'; (e.currentTarget as HTMLButtonElement).style.color = '#0F2D52'; }}
+                  onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.borderColor = '#E5E7EB'; (e.currentTarget as HTMLButtonElement).style.color = '#374151'; }}
+                >
+                  <svg width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7"/>
+                  </svg>
+                  Back to Exams
+                </button>
+                <ExamResults
+                  examId={selectedExamId}
+                  onError={(msg) => showToast(msg, 'error')}
+                />
+              </div>
+            )}
+          </div>
         </div>
       </div>
 
-      {/* Main Content */}
-      <div className="flex flex-col h-screen overflow-hidden">
-        {/* Header */}
-        <div className="bg-white px-8 py-6 flex items-center justify-between flex-shrink-0" style={{ borderBottom: '1px solid var(--gray-200)' }}>
-          <div>
-            <h1 className="text-2xl font-bold" style={{ color: 'var(--navy-primary)' }}>
-              {activeTab === 'students' && 'Students'}
-              {activeTab === 'exams' && 'Exams'}
-              {activeTab === 'create-exam' && 'Create Exam'}
-              {activeTab === 'manage-questions' && 'Manage Questions'}
-              {activeTab === 'exam-results' && 'Exam Results'}
-            </h1>
-            <p className="text-sm mt-1" style={{ color: 'var(--text-secondary)' }}>
-              {activeTab === 'students' && 'View enrolled students'}
-              {activeTab === 'exams' && 'Manage your exams'}
-              {activeTab === 'create-exam' && 'Create a new exam'}
-              {activeTab === 'manage-questions' && 'Add and edit questions'}
-              {activeTab === 'exam-results' && 'View student results'}
-            </p>
-          </div>
-        </div>
-
-        {/* Content */}
-        <div className="flex-1 overflow-auto p-8">
-          {activeTab === 'students' && (
-            <div className="space-y-6">
-              {/* Stats Cards */}
-              <div className="grid grid-cols-3 gap-6">
-                <div className="card-stat">
-                  <div className="text-sm font-semibold mb-2" style={{ color: 'var(--text-secondary)' }}>Total Students</div>
-                  <div className="text-3xl font-bold" style={{ color: 'var(--navy-primary)' }}>{studentsData?.students.length}</div>
-                  <div className="text-xs mt-2" style={{ color: 'var(--text-secondary)' }}>Enrolled in your school</div>
-                </div>
-                <div className="card-stat">
-                  <div className="text-sm font-semibold mb-2" style={{ color: 'var(--text-secondary)' }}>Exams Created</div>
-                  <div className="text-3xl font-bold" style={{ color: 'var(--navy-primary)' }}>{exams.length}</div>
-                  <div className="text-xs mt-2" style={{ color: 'var(--text-secondary)' }}>Total exams</div>
-                </div>
-                <div className="card-stat">
-                  <div className="text-sm font-semibold mb-2" style={{ color: 'var(--text-secondary)' }}>Active Exams</div>
-                  <div className="text-3xl font-bold" style={{ color: 'var(--navy-primary)' }}>{exams.filter(e => e.status === 'PUBLISHED').length}</div>
-                  <div className="text-xs mt-2" style={{ color: 'var(--text-secondary)' }}>Currently published</div>
-                </div>
-              </div>
-
-              {/* Students Table */}
-              <div>
-                <h2 className="text-lg font-semibold mb-4" style={{ color: 'var(--navy-primary)' }}>Enrolled Students</h2>
-                <StudentListTable
-                  students={studentsData?.students || []}
-                  assignedSchool={studentsData?.assignedSchool || ''}
-                />
-              </div>
-            </div>
-          )}
-
-          {activeTab === 'exams' && (
-            <div className="space-y-6">
-              {/* Stats Card */}
-              <div className="card-stat max-w-sm">
-                <div className="text-sm font-semibold mb-2" style={{ color: 'var(--text-secondary)' }}>Total Exams</div>
-                <div className="text-3xl font-bold" style={{ color: 'var(--navy-primary)' }}>{exams.length}</div>
-                <div className="text-xs mt-2" style={{ color: 'var(--text-secondary)' }}>All exams created</div>
-              </div>
-
-              {/* Exams Table */}
-              <div>
-                <h2 className="text-lg font-semibold mb-4" style={{ color: 'var(--navy-primary)' }}>All Exams</h2>
-                <ExamListTable 
-                  exams={exams} 
-                  onManageQuestions={handleManageQuestions} 
-                  onPublishExam={handlePublishExam} 
-                  onStopExam={handleStopExam} 
-                  onDeleteExam={handleDeleteExam}
-                  onViewResults={handleViewResults}
-                />
-              </div>
-            </div>
-          )}
-
-          {activeTab === 'create-exam' && (
-            <CreateExamForm 
-              programs={programs} 
-              onSuccess={handleExamCreated}
-              onError={(message) => showToast(message, 'error')}
-            />
-          )}
-
-          {activeTab === 'manage-questions' && selectedExamId && (
-            <div>
-              <button
-                onClick={() => setActiveTab('exams')}
-                className="btn-secondary mb-6 flex items-center gap-2"
-              >
-                <svg className="w-4 h-4" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5">
-                  <path d="M10 12L6 8l4-4" strokeLinecap="round" strokeLinejoin="round"/>
-                </svg>
-                Back to Exams
-              </button>
-              <QuestionManager 
-                examId={selectedExamId}
-                onSuccess={(message) => showToast(message, 'success')}
-                onError={(message) => showToast(message, 'error')}
-              />
-            </div>
-          )}
-
-          {activeTab === 'exam-results' && selectedExamId && (
-            <div>
-              <button
-                onClick={() => setActiveTab('exams')}
-                className="btn-secondary mb-6 flex items-center gap-2"
-              >
-                <svg className="w-4 h-4" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5">
-                  <path d="M10 12L6 8l4-4" strokeLinecap="round" strokeLinejoin="round"/>
-                </svg>
-                Back to Exams
-              </button>
-              <ExamResults 
-                examId={selectedExamId}
-                onError={(message) => showToast(message, 'error')}
-              />
-            </div>
-          )}
-        </div>
-      </div>
-
-      {/* Toast Notification */}
+      {/* Toast */}
       {toast && (
-        <div className="fixed top-4 right-4 z-50 animate-slide-up">
-          <div
-            className={`px-4 py-3 rounded-lg shadow-lg text-sm font-medium ${
-              toast.type === 'success'
-                ? 'bg-success text-white'
-                : 'bg-error text-white'
-            }`}
-          >
+        <div style={{ position: 'fixed', top: 20, right: 20, zIndex: 100 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '14px 20px', borderRadius: 14, background: toast.type === 'success' ? '#16A34A' : '#DC2626', color: '#fff', fontSize: 14, fontWeight: 500, boxShadow: '0 8px 24px rgba(0,0,0,0.18)', animation: 'slideDown 250ms ease', fontFamily: "'Inter', -apple-system, sans-serif" }}>
+            {toast.type === 'success' ? (
+              <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+              </svg>
+            ) : (
+              <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+              </svg>
+            )}
             {toast.message}
           </div>
         </div>
       )}
+
+      <style>{`
+        @keyframes slideDown { from { opacity: 0; transform: translateY(-8px); } to { opacity: 1; transform: translateY(0); } }
+        @keyframes spin { to { transform: rotate(360deg); } }
+      `}</style>
     </div>
   );
 }

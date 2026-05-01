@@ -1,23 +1,32 @@
 import crypto from 'crypto';
 
 /**
- * Generates a secure random password with 8-10 characters
- * Contains at least one uppercase letter, one lowercase letter, and one number
+ * Generates a secure random password with 12 characters
+ * Contains uppercase, lowercase, numbers, and special characters
+ * Format: RvU@4729#Exam or Test@1842#Pwd
  */
 export function generateSecurePassword(): string {
-  const length = Math.floor(Math.random() * 3) + 8; // 8-10 characters
+  const length = 12; // Fixed length for consistency
   
   const uppercase = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
   const lowercase = 'abcdefghijklmnopqrstuvwxyz';
   const numbers = '0123456789';
-  const allChars = uppercase + lowercase + numbers;
+  const special = '@#$%&*!';
+  const allChars = uppercase + lowercase + numbers + special;
   
   let password = '';
   
   // Ensure at least one of each required character type
   password += uppercase[crypto.randomInt(0, uppercase.length)];
+  password += uppercase[crypto.randomInt(0, uppercase.length)];
+  password += lowercase[crypto.randomInt(0, lowercase.length)];
   password += lowercase[crypto.randomInt(0, lowercase.length)];
   password += numbers[crypto.randomInt(0, numbers.length)];
+  password += numbers[crypto.randomInt(0, numbers.length)];
+  password += numbers[crypto.randomInt(0, numbers.length)];
+  password += numbers[crypto.randomInt(0, numbers.length)];
+  password += special[crypto.randomInt(0, special.length)];
+  password += special[crypto.randomInt(0, special.length)];
   
   // Fill remaining characters randomly
   for (let i = password.length; i < length; i++) {
@@ -42,8 +51,62 @@ function shuffleString(str: string): string {
 
 /**
  * Validates password strength for user-provided passwords
- * Minimum 8 characters
+ * Requirements:
+ * - Minimum 8 characters
+ * - At least one uppercase letter
+ * - At least one lowercase letter
+ * - At least one number
+ * - At least one special character (@#$%&*!)
  */
 export function isValidPassword(password: string): boolean {
-  return password.length >= 8;
+  if (!password || password.length < 8) {
+    return false;
+  }
+  
+  const hasUppercase = /[A-Z]/.test(password);
+  const hasLowercase = /[a-z]/.test(password);
+  const hasNumber = /[0-9]/.test(password);
+  const hasSpecial = /[@#$%&*!]/.test(password);
+  
+  console.log('Password validation:', {
+    password,
+    length: password.length,
+    hasUppercase,
+    hasLowercase,
+    hasNumber,
+    hasSpecial,
+    isValid: hasUppercase && hasLowercase && hasNumber && hasSpecial
+  });
+  
+  return hasUppercase && hasLowercase && hasNumber && hasSpecial;
+}
+
+/**
+ * Get detailed password validation errors
+ * Returns array of error messages
+ */
+export function getPasswordErrors(password: string): string[] {
+  const errors: string[] = [];
+  
+  if (password.length < 8) {
+    errors.push('Password must be at least 8 characters long');
+  }
+  
+  if (!/[A-Z]/.test(password)) {
+    errors.push('Password must contain at least one uppercase letter');
+  }
+  
+  if (!/[a-z]/.test(password)) {
+    errors.push('Password must contain at least one lowercase letter');
+  }
+  
+  if (!/[0-9]/.test(password)) {
+    errors.push('Password must contain at least one number');
+  }
+  
+  if (!/[@#$%&*!]/.test(password)) {
+    errors.push('Password must contain at least one special character (@#$%&*!)');
+  }
+  
+  return errors;
 }

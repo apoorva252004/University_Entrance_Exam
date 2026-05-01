@@ -3,6 +3,8 @@ import Credentials from "next-auth/providers/credentials";
 import { prisma } from "@/lib/prisma";
 import bcrypt from "bcrypt";
 import type { User } from "@prisma/client";
+import { checkRateLimit, resetRateLimit } from "@/lib/utils/rate-limit";
+import { logAuditEvent } from "@/lib/utils/audit-log";
 
 // Custom error for pending approval
 class PendingApprovalError extends CredentialsSignin {
@@ -31,31 +33,57 @@ export const authOptions: NextAuthConfig = {
         const username = credentials.username as string;
         const password = credentials.password as string;
 
+        // Check rate limit for this username
+        const rateLimit = checkRateLimit(username);
+        if (!rateLimit.allowed) {
+          logAuditEvent({
+            eventType: 'ACCOUNT_LOCKED',
+            username,
+            success: false,
+            details: { reason: 'Too many failed attempts', lockedUntil: rateLimit.lockedUntil },
+          });
+          throw new CredentialsSignin("Too many failed attempts. Account temporarily locked.");
+        }
+
         // Find user by username
         const user = await prisma.user.findUnique({
           where: { username },
         });
 
-        // User not found
+        // User not found - use generic error message
         if (!user) {
+          logAuditEvent({
+            eventType: 'LOGIN_FAILURE',
+            username,
+            success: false,
+            details: { reason: 'Invalid credentials' },
+          });
           return null;
         }
 
         // Verify password
         const isValidPassword = await bcrypt.compare(password, user.password);
         if (!isValidPassword) {
+          logAuditEvent({
+            eventType: 'LOGIN_FAILURE',
+            userId: user.id,
+            username,
+            success: false,
+            details: { reason: 'Invalid credentials' },
+          });
           return null;
         }
 
-        // Check if student with pending status
-        if (user.role === "STUDENT" && user.status === "PENDING") {
-          throw new PendingApprovalError("Waiting for admin approval");
-        }
-
-        // Check if student with rejected status
-        if (user.role === "STUDENT" && user.status === "REJECTED") {
-          throw new ApplicationRejectedError("Your application has been rejected");
-        }
+        // Successful login - reset rate limit
+        resetRateLimit(username);
+        
+        logAuditEvent({
+          eventType: 'LOGIN_SUCCESS',
+          userId: user.id,
+          username,
+          success: true,
+          details: { role: user.role },
+        });
 
         // Return user object with required fields
         return {

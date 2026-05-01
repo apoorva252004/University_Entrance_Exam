@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import BulkQuestionUpload from './BulkQuestionUpload';
 
 interface Question {
@@ -13,20 +13,33 @@ interface Question {
   order: number;
 }
 
-interface QuestionManagerProps {
+interface Props {
   examId: string;
   onSuccess: (message: string) => void;
   onError: (message: string) => void;
 }
 
-export default function QuestionManager({ examId, onSuccess, onError }: QuestionManagerProps) {
+const TYPE_LABELS: Record<string, string> = {
+  MCQ: 'Multiple Choice',
+  TRUE_FALSE: 'True / False',
+  SHORT_ANSWER: 'Short Answer',
+  LONG_ANSWER: 'Long Answer',
+};
+
+const TYPE_BADGE: Record<string, string> = {
+  MCQ: 'badge-navy',
+  TRUE_FALSE: 'badge-info',
+  SHORT_ANSWER: 'badge-gold',
+  LONG_ANSWER: 'badge-warning',
+};
+
+export default function QuestionManager({ examId, onSuccess, onError }: Props) {
   const [questions, setQuestions] = useState<Question[]>([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [showBulkUpload, setShowBulkUpload] = useState(false);
   const [editingQuestion, setEditingQuestion] = useState<Question | null>(null);
-  
-  // Form state
+
   const [formData, setFormData] = useState({
     questionText: '',
     questionType: 'MCQ' as Question['questionType'],
@@ -35,20 +48,14 @@ export default function QuestionManager({ examId, onSuccess, onError }: Question
     marks: 1,
   });
 
-  useEffect(() => {
-    fetchQuestions();
-  }, [examId]);
+  useEffect(() => { fetchQuestions(); }, [examId]);
 
   const fetchQuestions = async () => {
     try {
       setLoading(true);
-      const response = await fetch(`/api/teacher/exams/${examId}/questions`);
-      
-      if (!response.ok) {
-        throw new Error('Failed to fetch questions');
-      }
-
-      const data = await response.json();
+      const res = await fetch(`/api/teacher/exams/${examId}/questions`);
+      if (!res.ok) throw new Error('Failed to fetch questions');
+      const data = await res.json();
       setQuestions(data.questions);
     } catch (err) {
       onError(err instanceof Error ? err.message : 'Failed to load questions');
@@ -59,17 +66,15 @@ export default function QuestionManager({ examId, onSuccess, onError }: Question
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-
     try {
-      const payload: any = {
+      const payload: Record<string, unknown> = {
         questionText: formData.questionText,
         questionType: formData.questionType,
         marks: formData.marks,
         order: editingQuestion ? editingQuestion.order : questions.length + 1,
       };
-
       if (formData.questionType === 'MCQ') {
-        payload.options = JSON.stringify(formData.options.filter(opt => opt.trim()));
+        payload.options = JSON.stringify(formData.options.filter(o => o.trim()));
         payload.correctAnswer = formData.correctAnswer;
       } else if (formData.questionType === 'TRUE_FALSE') {
         payload.correctAnswer = formData.correctAnswer;
@@ -78,18 +83,13 @@ export default function QuestionManager({ examId, onSuccess, onError }: Question
       const url = editingQuestion
         ? `/api/teacher/exams/${examId}/questions/${editingQuestion.id}`
         : `/api/teacher/exams/${examId}/questions`;
-      
-      const method = editingQuestion ? 'PATCH' : 'POST';
 
-      const response = await fetch(url, {
-        method,
+      const res = await fetch(url, {
+        method: editingQuestion ? 'PATCH' : 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
       });
-
-      if (!response.ok) {
-        throw new Error('Failed to save question');
-      }
+      if (!res.ok) throw new Error('Failed to save question');
 
       onSuccess(editingQuestion ? 'Question updated successfully' : 'Question added successfully');
       resetForm();
@@ -99,30 +99,23 @@ export default function QuestionManager({ examId, onSuccess, onError }: Question
     }
   };
 
-  const handleEdit = (question: Question) => {
-    setEditingQuestion(question);
+  const handleEdit = (q: Question) => {
+    setEditingQuestion(q);
     setFormData({
-      questionText: question.questionText,
-      questionType: question.questionType,
-      options: question.options ? JSON.parse(question.options) : ['', '', '', ''],
-      correctAnswer: question.correctAnswer || '',
-      marks: question.marks,
+      questionText: q.questionText,
+      questionType: q.questionType,
+      options: q.options ? JSON.parse(q.options) : ['', '', '', ''],
+      correctAnswer: q.correctAnswer || '',
+      marks: q.marks,
     });
     setShowForm(true);
   };
 
   const handleDelete = async (questionId: string) => {
-    if (!confirm('Are you sure you want to delete this question?')) return;
-
+    if (!confirm('Delete this question?')) return;
     try {
-      const response = await fetch(`/api/teacher/exams/${examId}/questions/${questionId}`, {
-        method: 'DELETE',
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to delete question');
-      }
-
+      const res = await fetch(`/api/teacher/exams/${examId}/questions/${questionId}`, { method: 'DELETE' });
+      if (!res.ok) throw new Error('Failed to delete question');
       onSuccess('Question deleted successfully');
       fetchQuestions();
     } catch (err) {
@@ -131,278 +124,274 @@ export default function QuestionManager({ examId, onSuccess, onError }: Question
   };
 
   const resetForm = () => {
-    setFormData({
-      questionText: '',
-      questionType: 'MCQ',
-      options: ['', '', '', ''],
-      correctAnswer: '',
-      marks: 1,
-    });
+    setFormData({ questionText: '', questionType: 'MCQ', options: ['', '', '', ''], correctAnswer: '', marks: 1 });
     setEditingQuestion(null);
     setShowForm(false);
   };
 
-  const handleOptionChange = (index: number, value: string) => {
-    const newOptions = [...formData.options];
-    newOptions[index] = value;
-    setFormData({ ...formData, options: newOptions });
-  };
+  const handleOptionChange = useCallback((index: number, value: string) => {
+    setFormData(prev => {
+      const opts = [...prev.options];
+      opts[index] = value;
+      return { ...prev, options: opts };
+    });
+  }, []);
+
+  const handleFormDataChange = useCallback((field: string, value: any) => {
+    setFormData(prev => ({ ...prev, [field]: value }));
+  }, []);
 
   if (loading) {
     return (
-      <div className="text-center py-12 bg-white rounded-xl" style={{ border: '1px solid #e0dfd8' }}>
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 mx-auto" style={{ borderColor: '#533490' }}></div>
-        <p className="mt-3 text-sm" style={{ color: '#6b6b67' }}>Loading questions...</p>
+      <div className="table-container flex flex-col items-center justify-center py-20">
+        <div className="w-8 h-8 rounded-full border-2 border-t-transparent animate-spin"
+          style={{ borderColor: '#0F2D52', borderTopColor: 'transparent' }} />
+        <p className="mt-3 text-sm" style={{ color: '#6B7280' }}>Loading questions…</p>
       </div>
     );
   }
 
   return (
-    <div className="space-y-4">
-      {/* Stats Card */}
-      <div className="bg-white rounded-xl p-5" style={{ border: '1px solid #e0dfd8' }}>
-        <div className="text-xs font-medium uppercase tracking-wider mb-2" style={{ color: '#9b9b96' }}>Total Questions</div>
-        <div className="text-3xl font-semibold" style={{ color: '#1a1a18' }}>{questions.length}</div>
-      </div>
-
-      {/* Add Question Button */}
-      {!showForm && (
-        <div className="flex gap-3">
-          <button
-            onClick={() => setShowForm(true)}
-            className="flex-1 px-4 py-3 rounded-xl text-sm font-medium transition-colors hover:opacity-90"
-            style={{ background: '#E8F0FE', color: '#1A2D5A' }}
-          >
-            + Add New Question
-          </button>
-          <button
-            onClick={() => setShowBulkUpload(true)}
-            className="px-6 py-3 rounded-xl text-sm font-semibold transition-colors hover:opacity-90 shadow-sm"
-            style={{ background: '#F4B400', color: '#1A1A1A' }}
-          >
-            <svg className="w-4 h-4 inline-block mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
-            </svg>
-            Bulk Upload
-          </button>
+    <div className="space-y-5">
+      {/* Header card with stats + actions */}
+      <div className="bg-white rounded-2xl px-6 py-5 flex items-center justify-between"
+        style={{ border: '1px solid #EEF2F7', boxShadow: '0 10px 25px rgba(0,0,0,0.06)' }}>
+        <div>
+          <p className="text-xs font-semibold uppercase tracking-wider mb-1" style={{ color: '#9CA3AF' }}>Questions</p>
+          <p className="text-3xl font-bold" style={{ color: '#0F2D52' }}>{questions.length}</p>
         </div>
-      )}
+        {!showForm && (
+          <div className="flex gap-3">
+            <button onClick={() => setShowBulkUpload(true)} className="btn-accent">
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+              </svg>
+              Bulk Upload
+            </button>
+            <button onClick={() => setShowForm(true)} className="btn-primary">
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
+              </svg>
+              Add Question
+            </button>
+          </div>
+        )}
+      </div>
 
       {/* Question Form */}
       {showForm && (
-        <div className="bg-white rounded-xl p-6" style={{ border: '1px solid #E5E5E5' }}>
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="text-sm font-medium" style={{ color: '#222222' }}>
+        <div className="bg-white rounded-2xl overflow-hidden"
+          style={{ border: '1px solid #EEF2F7', boxShadow: '0 10px 25px rgba(0,0,0,0.06)' }}>
+          <div className="px-6 py-4 flex items-center justify-between"
+            style={{ borderBottom: '1px solid #EEF2F7', background: '#F8FAFC' }}>
+            <h3 className="font-semibold" style={{ color: '#0F2D52' }}>
               {editingQuestion ? 'Edit Question' : 'Add New Question'}
             </h3>
-            <button
-              onClick={resetForm}
-              className="text-xs px-3 py-1.5 rounded-lg hover:bg-gray-50 transition-colors"
-              style={{ color: '#666666', border: '1px solid #E5E5E5' }}
-            >
+            <button onClick={resetForm} className="btn-ghost" style={{ padding: '7px 14px', fontSize: '13px' }}>
               Cancel
             </button>
           </div>
 
-          <form onSubmit={handleSubmit} className="space-y-4">
-            {/* Question Text */}
+          <form onSubmit={handleSubmit} className="px-6 py-5 space-y-5">
+            {/* Question text */}
             <div>
-              <label className="block text-xs font-medium mb-2" style={{ color: '#666666' }}>
-                Question Text *
+              <label className="block text-sm font-semibold mb-2" style={{ color: '#374151' }}>
+                Question Text <span style={{ color: '#DC2626' }}>*</span>
               </label>
               <textarea
                 value={formData.questionText}
-                onChange={(e) => setFormData({ ...formData, questionText: e.target.value })}
-                required
-                rows={3}
-                className="w-full px-3 py-2 text-sm rounded-lg focus:outline-none focus:ring-2"
-                style={{ border: '1px solid #E5E5E5', background: '#ffffff', color: '#222222' }}
-                placeholder="Enter your question here..."
+                onChange={e => handleFormDataChange('questionText', e.target.value)}
+                required rows={3} placeholder="Enter your question here…"
+                className="input-field" style={{ resize: 'vertical' }}
               />
             </div>
 
-            {/* Question Type and Marks */}
-            <div className="grid grid-cols-2 gap-4">
+            {/* Type + Marks */}
+            <div className="grid grid-cols-2 gap-5">
               <div>
-                <label className="block text-xs font-medium mb-2" style={{ color: '#666666' }}>
-                  Question Type *
+                <label className="block text-sm font-semibold mb-2" style={{ color: '#374151' }}>
+                  Question Type <span style={{ color: '#DC2626' }}>*</span>
                 </label>
                 <select
                   value={formData.questionType}
-                  onChange={(e) => setFormData({ ...formData, questionType: e.target.value as Question['questionType'], options: ['', '', '', ''], correctAnswer: '' })}
-                  required
-                  className="w-full px-3 py-2 text-sm rounded-lg focus:outline-none focus:ring-2"
-                  style={{ border: '1px solid #E5E5E5', background: '#ffffff', color: '#222222' }}
+                  onChange={e => setFormData(prev => ({ 
+                    ...prev, 
+                    questionType: e.target.value as Question['questionType'], 
+                    options: ['', '', '', ''], 
+                    correctAnswer: '' 
+                  }))}
+                  required className="input-field"
                 >
                   <option value="MCQ">Multiple Choice</option>
-                  <option value="TRUE_FALSE">True/False</option>
+                  <option value="TRUE_FALSE">True / False</option>
                   <option value="SHORT_ANSWER">Short Answer</option>
                   <option value="LONG_ANSWER">Long Answer</option>
                 </select>
               </div>
-
               <div>
-                <label className="block text-xs font-medium mb-2" style={{ color: '#666666' }}>
-                  Marks *
+                <label className="block text-sm font-semibold mb-2" style={{ color: '#374151' }}>
+                  Marks <span style={{ color: '#DC2626' }}>*</span>
                 </label>
-                <input
-                  type="number"
-                  value={formData.marks}
-                  onChange={(e) => setFormData({ ...formData, marks: parseInt(e.target.value) })}
-                  required
-                  min="1"
-                  className="w-full px-3 py-2 text-sm rounded-lg focus:outline-none focus:ring-2"
-                  style={{ border: '1px solid #E5E5E5', background: '#ffffff', color: '#222222' }}
-                />
+                <input type="number" value={formData.marks} min="1" required
+                  onChange={e => handleFormDataChange('marks', parseInt(e.target.value))}
+                  className="input-field" />
               </div>
             </div>
 
-            {/* MCQ Options */}
+            {/* MCQ options */}
             {formData.questionType === 'MCQ' && (
               <div>
-                <label className="block text-xs font-medium mb-2" style={{ color: '#666666' }}>
-                  Options *
+                <label className="block text-sm font-semibold mb-3" style={{ color: '#374151' }}>
+                  Options <span style={{ color: '#DC2626' }}>*</span>
                 </label>
-                <div className="space-y-2">
-                  {formData.options.map((option, index) => (
-                    <div key={index} className="flex items-center gap-2">
-                      <input
-                        type="radio"
-                        name="correctAnswer"
-                        checked={formData.correctAnswer === option}
-                        onChange={() => setFormData({ ...formData, correctAnswer: option })}
-                        className="w-4 h-4"
-                        style={{ accentColor: '#B81C2E' }}
-                      />
-                      <input
-                        type="text"
-                        value={option}
-                        onChange={(e) => handleOptionChange(index, e.target.value)}
-                        required
-                        placeholder={`Option ${index + 1}`}
-                        className="flex-1 px-3 py-2 text-sm rounded-lg focus:outline-none focus:ring-2"
-                        style={{ border: '1px solid #E5E5E5', background: '#ffffff', color: '#222222' }}
-                      />
+                <div className="space-y-2.5">
+                  {formData.options.map((option, i) => (
+                    <div key={i} className="flex items-center gap-3">
+                      <label className="flex items-center gap-2 cursor-pointer flex-shrink-0">
+                        <input type="radio" name="correctAnswer"
+                          checked={formData.correctAnswer === option && option !== ''}
+                          onChange={() => option && handleFormDataChange('correctAnswer', option)}
+                          style={{ accentColor: '#0F2D52', width: '16px', height: '16px' }} />
+                        <span className="text-xs font-bold" style={{ color: '#6B7280' }}>
+                          {String.fromCharCode(65 + i)}
+                        </span>
+                      </label>
+                      <input type="text" value={option} required
+                        onChange={e => handleOptionChange(i, e.target.value)}
+                        placeholder={`Option ${String.fromCharCode(65 + i)}`}
+                        className="input-field flex-1" style={{ padding: '10px 14px' }} />
                     </div>
                   ))}
                 </div>
-                <p className="text-xs mt-2" style={{ color: '#999999' }}>Select the correct answer by clicking the radio button</p>
+                <p className="mt-2 text-xs" style={{ color: '#9CA3AF' }}>
+                  Click the radio button next to the correct answer
+                </p>
               </div>
             )}
 
-            {/* True/False Options */}
+            {/* True/False */}
             {formData.questionType === 'TRUE_FALSE' && (
               <div>
-                <label className="block text-xs font-medium mb-2" style={{ color: '#666666' }}>
-                  Correct Answer *
+                <label className="block text-sm font-semibold mb-3" style={{ color: '#374151' }}>
+                  Correct Answer <span style={{ color: '#DC2626' }}>*</span>
                 </label>
                 <div className="flex gap-4">
-                  <label className="flex items-center gap-2">
-                    <input
-                      type="radio"
-                      name="trueFalse"
-                      value="TRUE"
-                      checked={formData.correctAnswer === 'TRUE'}
-                      onChange={(e) => setFormData({ ...formData, correctAnswer: e.target.value })}
-                      required
-                      className="w-4 h-4"
-                      style={{ accentColor: '#B81C2E' }}
-                    />
-                    <span className="text-sm" style={{ color: '#222222' }}>True</span>
-                  </label>
-                  <label className="flex items-center gap-2">
-                    <input
-                      type="radio"
-                      name="trueFalse"
-                      value="FALSE"
-                      checked={formData.correctAnswer === 'FALSE'}
-                      onChange={(e) => setFormData({ ...formData, correctAnswer: e.target.value })}
-                      required
-                      className="w-4 h-4"
-                      style={{ accentColor: '#B81C2E' }}
-                    />
-                    <span className="text-sm" style={{ color: '#222222' }}>False</span>
-                  </label>
+                  {['TRUE', 'FALSE'].map(val => (
+                    <label key={val} className="flex items-center gap-2.5 px-5 py-3 rounded-xl cursor-pointer transition-colors"
+                      style={{
+                        border: `1.5px solid ${formData.correctAnswer === val ? '#0F2D52' : '#E5E7EB'}`,
+                        background: formData.correctAnswer === val ? '#EAF2FB' : '#fff',
+                      }}>
+                      <input type="radio" name="trueFalse" value={val} required
+                        checked={formData.correctAnswer === val}
+                        onChange={e => handleFormDataChange('correctAnswer', e.target.value)}
+                        style={{ accentColor: '#0F2D52', width: '16px', height: '16px' }} />
+                      <span className="text-sm font-semibold" style={{ color: '#0F2D52' }}>{val}</span>
+                    </label>
+                  ))}
                 </div>
               </div>
             )}
 
-            {/* Submit Button */}
-            <button
-              type="submit"
-              className="w-full px-4 py-2.5 rounded-lg text-sm font-medium transition-colors hover:opacity-90"
-              style={{ background: '#1A2D5A', color: '#ffffff' }}
-            >
+            <div style={{ borderTop: '1px solid #EEF2F7' }} />
+
+            <button type="submit" className="btn-primary">
               {editingQuestion ? 'Update Question' : 'Add Question'}
             </button>
           </form>
         </div>
       )}
 
-      {/* Questions List */}
+      {/* Questions list */}
       {questions.length === 0 && !showForm ? (
-        <div className="text-center py-12 bg-white rounded-xl" style={{ border: '1px solid #E5E5E5' }}>
-          <p className="text-sm" style={{ color: '#666666' }}>No questions added yet</p>
+        <div className="table-container flex flex-col items-center justify-center py-20">
+          <div className="w-16 h-16 rounded-2xl flex items-center justify-center mb-4" style={{ background: '#EAF2FB' }}>
+            <svg className="w-8 h-8" style={{ color: '#0F2D52' }} fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+          </div>
+          <h3 className="text-base font-semibold mb-1" style={{ color: '#0F2D52' }}>No questions yet</h3>
+          <p className="text-sm" style={{ color: '#6B7280' }}>Add questions manually or use bulk upload</p>
         </div>
       ) : (
         <div className="space-y-3">
-          {questions.map((question, index) => (
-            <div key={question.id} className="bg-white rounded-xl p-5" style={{ border: '1px solid #E5E5E5' }}>
-              <div className="flex items-start justify-between gap-4">
-                <div className="flex-1">
-                  <div className="flex items-start gap-3 mb-3">
-                    <span className="text-xs font-medium px-2 py-1 rounded-full flex-shrink-0" style={{ background: '#F3F4F6', color: '#666666' }}>
-                      Q{index + 1}
-                    </span>
-                    <p className="text-sm flex-1" style={{ color: '#222222' }}>{question.questionText}</p>
-                  </div>
+          {questions.map((q, idx) => {
+            const opts = q.options ? JSON.parse(q.options) as string[] : [];
+            return (
+              <div key={q.id} className="bg-white rounded-2xl overflow-hidden"
+                style={{ border: '1px solid #EEF2F7', boxShadow: '0 4px 12px rgba(0,0,0,0.04)' }}>
+                <div className="px-6 py-4">
+                  <div className="flex items-start gap-4">
+                    {/* Number badge */}
+                    <div className="w-8 h-8 rounded-lg flex items-center justify-center text-xs font-bold flex-shrink-0"
+                      style={{ background: '#EAF2FB', color: '#0F2D52' }}>
+                      {idx + 1}
+                    </div>
 
-                  <div className="flex flex-wrap gap-3 text-xs" style={{ color: '#666666' }}>
-                    <span className="px-2 py-1 rounded-full" style={{ background: '#E8F0FE', color: '#1A2D5A' }}>
-                      {question.questionType.replace('_', ' ')}
-                    </span>
-                    <span>{question.marks} {question.marks === 1 ? 'mark' : 'marks'}</span>
-                  </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium mb-2" style={{ color: '#111827' }}>{q.questionText}</p>
 
-                  {question.options && (
-                    <div className="mt-3 space-y-1">
-                      {JSON.parse(question.options).map((option: string, idx: number) => (
-                        <div key={idx} className="text-xs flex items-center gap-2" style={{ color: '#666666' }}>
-                          <span className={option === question.correctAnswer ? 'font-medium' : ''} style={option === question.correctAnswer ? { color: '#065F46' } : {}}>
-                            {String.fromCharCode(65 + idx)}. {option}
-                            {option === question.correctAnswer && ' ✓'}
-                          </span>
+                      <div className="flex items-center gap-2 flex-wrap mb-3">
+                        <span className={`badge ${TYPE_BADGE[q.questionType] ?? 'badge-navy'}`} style={{ fontSize: '11px' }}>
+                          {TYPE_LABELS[q.questionType]}
+                        </span>
+                        <span className="badge badge-gold" style={{ fontSize: '11px' }}>
+                          {q.marks} {q.marks === 1 ? 'mark' : 'marks'}
+                        </span>
+                      </div>
+
+                      {/* MCQ options */}
+                      {opts.length > 0 && (
+                        <div className="space-y-1.5">
+                          {opts.map((opt, i) => {
+                            const isCorrect = opt === q.correctAnswer;
+                            return (
+                              <div key={i} className="flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm"
+                                style={{
+                                  background: isCorrect ? '#DCFCE7' : '#F8FAFC',
+                                  border: `1px solid ${isCorrect ? '#86EFAC' : '#EEF2F7'}`,
+                                  color: isCorrect ? '#14532D' : '#374151',
+                                }}>
+                                <span className="font-bold text-xs" style={{ color: isCorrect ? '#16A34A' : '#9CA3AF' }}>
+                                  {String.fromCharCode(65 + i)}
+                                </span>
+                                <span>{opt}</span>
+                                {isCorrect && (
+                                  <svg className="w-4 h-4 ml-auto flex-shrink-0" style={{ color: '#16A34A' }} fill="currentColor" viewBox="0 0 20 20">
+                                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                                  </svg>
+                                )}
+                              </div>
+                            );
+                          })}
                         </div>
-                      ))}
-                    </div>
-                  )}
+                      )}
 
-                  {question.questionType === 'TRUE_FALSE' && (
-                    <div className="mt-2 text-xs" style={{ color: '#065F46' }}>
-                      Correct Answer: {question.correctAnswer}
+                      {q.questionType === 'TRUE_FALSE' && q.correctAnswer && (
+                        <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm"
+                          style={{ background: '#DCFCE7', color: '#14532D' }}>
+                          <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                            <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                          </svg>
+                          Correct: {q.correctAnswer}
+                        </div>
+                      )}
                     </div>
-                  )}
-                </div>
 
-                <div className="flex gap-2 flex-shrink-0">
-                  <button
-                    onClick={() => handleEdit(question)}
-                    className="px-3 py-1.5 rounded-lg text-xs font-medium transition-colors hover:opacity-90"
-                    style={{ background: '#E8F0FE', color: '#1A2D5A' }}
-                  >
-                    Edit
-                  </button>
-                  <button
-                    onClick={() => handleDelete(question.id)}
-                    className="px-3 py-1.5 rounded-lg text-xs font-medium transition-colors hover:opacity-90"
-                    style={{ background: '#E8F0FE', color: '#1A2D5A' }}
-                  >
-                    Delete
-                  </button>
+                    {/* Actions */}
+                    <div className="flex gap-2 flex-shrink-0">
+                      <button onClick={() => handleEdit(q)} className="btn-secondary" style={{ padding: '7px 14px', fontSize: '12px' }}>
+                        Edit
+                      </button>
+                      <button onClick={() => handleDelete(q.id)} className="btn-danger" style={{ padding: '7px 14px', fontSize: '12px' }}>
+                        Delete
+                      </button>
+                    </div>
+                  </div>
                 </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       )}
 
@@ -410,10 +399,7 @@ export default function QuestionManager({ examId, onSuccess, onError }: Question
       {showBulkUpload && (
         <BulkQuestionUpload
           examId={examId}
-          onUploadComplete={() => {
-            fetchQuestions();
-            onSuccess('Questions uploaded successfully');
-          }}
+          onUploadComplete={() => { fetchQuestions(); onSuccess('Questions uploaded successfully'); }}
           onClose={() => setShowBulkUpload(false)}
         />
       )}
